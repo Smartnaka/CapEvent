@@ -8,3 +8,5 @@ web-build/
 *.key
 *.mobileprovision
 *.orig.*
+android/
+ios/
