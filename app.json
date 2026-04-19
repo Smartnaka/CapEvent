@@ -3,6 +3,12 @@
     "name": "CapEvent AI",
     "slug": "capevent-ai",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e6318db7-d4cd-48cd-8ce3-fe3cba74df31"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "capeventai",
