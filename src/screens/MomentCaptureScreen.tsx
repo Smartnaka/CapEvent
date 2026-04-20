@@ -37,7 +37,8 @@ function useScreenEntrance(delay = 0) {
   useEffect(() => {
     opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
     translateY.value = withDelay(delay, withSpring(0, { damping: 20, stiffness: 180 }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // delay is a mount-time constant — intentionally excluded from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return useAnimatedStyle(() => ({
@@ -95,7 +96,8 @@ export function MomentCaptureScreen() {
     } else {
       micPulse.value = withTiming(1, { duration: 300 });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // micPulse is a Reanimated shared value — stable reference, safe to omit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceState]);
 
   const micAnimStyle = useAnimatedStyle(() => ({

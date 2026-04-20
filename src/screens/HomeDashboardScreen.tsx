@@ -35,6 +35,8 @@ function useScreenEntrance(delay = 0) {
   useEffect(() => {
     opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
     translateY.value = withDelay(delay, withSpring(0, { damping: 20, stiffness: 180 }));
+    // delay is a mount-time constant — intentionally excluded from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return useAnimatedStyle(() => ({
@@ -193,7 +195,9 @@ function StaggerItem({ children, index }: StaggerItemProps) {
     const delay = index * 60;
     opacity.value = withDelay(delay, withTiming(1, { duration: 350 }));
     translateY.value = withDelay(delay, withSpring(0, { damping: 20, stiffness: 180 }));
-  }, [index]);
+    // index is stable at mount time — intentionally excluded from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const anim = useAnimatedStyle(() => ({
     opacity: opacity.value,
