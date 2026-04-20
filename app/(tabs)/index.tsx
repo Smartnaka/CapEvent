@@ -1,5 +1,13 @@
-import { MomentCaptureScreen } from '@/src/screens/MomentCaptureScreen';
+import { useRouter } from 'expo-router';
+import { HomeDashboardScreen } from '@/src/screens/HomeDashboardScreen';
 
-export default function CaptureTab() {
-  return <MomentCaptureScreen />;
+export default function HomeTab() {
+  const router = useRouter();
+
+  return (
+    <HomeDashboardScreen
+      onNavigateCapture={() => router.push('/(tabs)/capture')}
+      onNavigateSummary={() => router.push('/(tabs)/summary')}
+    />
+  );
 }
