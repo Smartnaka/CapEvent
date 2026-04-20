@@ -23,7 +23,7 @@ export function TagChip({ label, selected = false, onPress }: TagChipProps) {
   }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.94, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {
@@ -47,21 +47,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: Radius.full,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   selected: {
     backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
+    borderColor: Colors.borderGlow,
   },
   label: {
     ...Typography.caption,
     color: Colors.secondaryText,
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
   selectedLabel: {
-    color: Colors.primary,
+    color: Colors.accent,
     fontWeight: '600',
   },
 });

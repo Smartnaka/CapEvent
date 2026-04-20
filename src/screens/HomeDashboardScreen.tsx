@@ -15,13 +15,14 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buildDailySummary, loadMoments } from '../storage/localDb';
 import { DailySummary, Moment } from '../types/moment';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { MomentItem } from '../components/MomentItem';
-import { Colors, Radius, Shadow, Spacing, Typography } from '../design/tokens';
+import { Colors, Gradients, Radius, Shadow, Spacing, Typography } from '../design/tokens';
 
 interface HomeDashboardScreenProps {
   onNavigateCapture?: () => void;
@@ -57,7 +58,8 @@ export function HomeDashboardScreen({
 
   const headerAnim = useScreenEntrance(0);
   const heroAnim = useScreenEntrance(80);
-  const listAnim = useScreenEntrance(160);
+  const statsAnim = useScreenEntrance(140);
+  const listAnim = useScreenEntrance(200);
 
   const fabScale = useSharedValue(1);
   const fabPulse = useSharedValue(1);
@@ -65,8 +67,8 @@ export function HomeDashboardScreen({
   useEffect(() => {
     fabPulse.value = withRepeat(
       withSequence(
-        withTiming(1.08, { duration: 1000 }),
-        withTiming(1, { duration: 1000 }),
+        withTiming(1.2, { duration: 1200 }),
+        withTiming(1, { duration: 1200 }),
       ),
       -1,
       false,
@@ -79,11 +81,11 @@ export function HomeDashboardScreen({
 
   const fabPulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: fabPulse.value }],
-    opacity: (fabPulse.value - 1) * -4 + 0.3,
+    opacity: (fabPulse.value - 1) * -3 + 0.25,
   }));
 
   const handleFabPressIn = () => {
-    fabScale.value = withSpring(0.92, { damping: 15, stiffness: 350 });
+    fabScale.value = withSpring(0.9, { damping: 15, stiffness: 350 });
   };
 
   const handleFabPressOut = () => {
@@ -108,47 +110,86 @@ export function HomeDashboardScreen({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Ambient background glow */}
+      <View style={styles.ambientGlow} pointerEvents="none" />
+
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 110 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <Animated.View style={[styles.header, headerAnim]}>
-          <Text style={styles.appTitle}>CapEvent AI</Text>
-          <Text style={styles.appSubtitle}>Your event memory assistant</Text>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greeting}>Good morning ✦</Text>
+              <Text style={styles.appTitle}>CapEvent AI</Text>
+            </View>
+            <View style={styles.avatarBadge}>
+              <LinearGradient
+                colors={Gradients.primary}
+                style={styles.avatar}
+              >
+                <Text style={styles.avatarText}>C</Text>
+              </LinearGradient>
+            </View>
+          </View>
           <Text style={styles.dateText}>{today}</Text>
         </Animated.View>
 
-        {/* Hero — Daily Summary Card */}
+        {/* Stats Row */}
+        <Animated.View style={[styles.statsRow, statsAnim]}>
+          <View style={[styles.statCard, Shadow.soft]}>
+            <Text style={styles.statValue}>{moments.length}</Text>
+            <Text style={styles.statLabel}>Moments</Text>
+          </View>
+          <View style={[styles.statCard, styles.statCardAccent, Shadow.soft]}>
+            <Text style={[styles.statValue, { color: Colors.accent }]}>AI</Text>
+            <Text style={styles.statLabel}>Summary</Text>
+          </View>
+          <View style={[styles.statCard, Shadow.soft]}>
+            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statLabel}>Shared</Text>
+          </View>
+        </Animated.View>
+
+        {/* Hero — AI Summary Card */}
         <Animated.View style={heroAnim}>
-          <Card style={styles.heroCard}>
+          <LinearGradient
+            colors={['rgba(99,102,241,0.18)', 'rgba(139,92,246,0.08)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.heroCard, Shadow.medium]}
+          >
             <View style={styles.heroMeta}>
               <View style={styles.heroTag}>
-                <Text style={styles.heroTagText}>✦ AI Summary</Text>
+                <Text style={styles.heroTagDot}>✦</Text>
+                <Text style={styles.heroTagText}>AI Summary</Text>
               </View>
             </View>
             <Text style={styles.heroSummary}>
               {summary?.summaryText ?? 'Generating your daily AI summary…'}
             </Text>
             <Button
-              label="View Daily Summary"
+              label="View Full Summary →"
               onPress={onNavigateSummary ?? (() => {})}
               style={styles.heroButton}
             />
-          </Card>
+          </LinearGradient>
         </Animated.View>
 
         {/* Recent Moments */}
         <Animated.View style={[styles.section, listAnim]}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Moments</Text>
-            <Text style={styles.sectionCount}>{moments.length}</Text>
+            <View style={styles.sectionCountBadge}>
+              <Text style={styles.sectionCount}>{moments.length}</Text>
+            </View>
           </View>
 
           {moments.length === 0 ? (
             <Card style={styles.emptyCard}>
-              <Text style={styles.emptyIcon}>📝</Text>
+              <Text style={styles.emptyIcon}>✦</Text>
               <Text style={styles.emptyTitle}>No moments yet</Text>
               <Text style={styles.emptySubtitle}>
                 Tap + to capture your first event moment
@@ -167,15 +208,20 @@ export function HomeDashboardScreen({
       </ScrollView>
 
       {/* Floating Action Button */}
-      <View style={[styles.fabContainer, { bottom: insets.bottom + 24 }]}>
+      <View style={[styles.fabContainer, { bottom: insets.bottom + 28 }]}>
         <Animated.View style={[styles.fabPulseRing, fabPulseStyle]} />
         <AnimatedPressable
-          style={[styles.fab, fabAnimatedStyle, Shadow.medium]}
+          style={[styles.fabOuter, fabAnimatedStyle, Shadow.glow]}
           onPress={onNavigateCapture}
           onPressIn={handleFabPressIn}
           onPressOut={handleFabPressOut}
         >
-          <Text style={styles.fabIcon}>+</Text>
+          <LinearGradient
+            colors={Gradients.primary}
+            style={styles.fab}
+          >
+            <Text style={styles.fabIcon}>+</Text>
+          </LinearGradient>
         </AnimatedPressable>
       </View>
     </View>
@@ -212,48 +258,126 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  ambientGlow: {
+    position: 'absolute',
+    top: -120,
+    left: -80,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: Colors.primaryGlow,
+    opacity: 0.25,
+  },
   scroll: {
     flex: 1,
   },
   content: {
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
     gap: Spacing.lg,
   },
   header: {
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+    gap: Spacing.xs,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  greeting: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.accent,
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   appTitle: {
     ...Typography.largeTitle,
-    marginBottom: 4,
   },
-  appSubtitle: {
-    ...Typography.body,
-    color: Colors.secondaryText,
-    marginBottom: 6,
+  avatarBadge: {
+    ...Shadow.medium,
+  },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text,
   },
   dateText: {
     ...Typography.caption,
     fontWeight: '500',
-    color: Colors.secondaryText,
+    color: Colors.mutedText,
+    letterSpacing: 0.3,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 3,
+  },
+  statCardAccent: {
+    borderColor: Colors.borderGlow,
+    backgroundColor: Colors.primaryLight,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.text,
+    letterSpacing: -0.5,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Colors.mutedText,
+    letterSpacing: 0.4,
   },
   heroCard: {
+    borderRadius: Radius.xxl,
+    padding: Spacing.lg,
     gap: Spacing.md,
-    ...Shadow.medium,
+    borderWidth: 1,
+    borderColor: Colors.borderGlow,
   },
   heroMeta: {
     flexDirection: 'row',
   },
   heroTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: Colors.primaryLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.borderGlow,
+  },
+  heroTagDot: {
+    fontSize: 10,
+    color: Colors.accent,
   },
   heroTagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.primary,
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.accent,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   heroSummary: {
     ...Typography.body,
@@ -261,7 +385,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   heroButton: {
-    marginTop: Spacing.sm,
+    marginTop: 4,
   },
   section: {
     gap: Spacing.md,
@@ -275,26 +399,30 @@ const styles = StyleSheet.create({
     ...Typography.headline,
     fontSize: 18,
   },
-  sectionCount: {
-    ...Typography.caption,
-    backgroundColor: Colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  sectionCountBadge: {
+    backgroundColor: Colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: Radius.full,
-    overflow: 'hidden',
-    color: Colors.secondaryText,
-    fontWeight: '600',
+  },
+  sectionCount: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.accent,
   },
   momentList: {
     gap: Spacing.md,
   },
   emptyCard: {
     alignItems: 'center',
-    paddingVertical: 36,
+    paddingVertical: 44,
     gap: Spacing.sm,
   },
   emptyIcon: {
-    fontSize: 36,
+    fontSize: 32,
+    color: Colors.accent,
   },
   emptyTitle: {
     ...Typography.headline,
@@ -303,6 +431,7 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     ...Typography.caption,
     textAlign: 'center',
+    lineHeight: 20,
   },
   fabContainer: {
     position: 'absolute',
@@ -312,23 +441,25 @@ const styles = StyleSheet.create({
   },
   fabPulseRing: {
     position: 'absolute',
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.primary,
   },
+  fabOuter: {
+    borderRadius: 30,
+    overflow: 'hidden',
+  },
   fab: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: Colors.primary,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },
   fabIcon: {
-    fontSize: 30,
-    color: Colors.surface,
+    fontSize: 28,
+    color: Colors.text,
     fontWeight: '300',
-    lineHeight: 34,
+    lineHeight: 32,
   },
 });

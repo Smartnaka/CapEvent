@@ -19,6 +19,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
@@ -27,7 +28,7 @@ import { Moment } from '../types/moment';
 import { MAX_CONTENT_LENGTH } from '../utils/validation';
 import { TagChip } from '../components/TagChip';
 import { Button } from '../components/Button';
-import { Colors, Radius, Shadow, Spacing, Typography } from '../design/tokens';
+import { Colors, Gradients, Radius, Shadow, Spacing, Typography } from '../design/tokens';
 
 const TAG_OPTIONS = ['Networking', 'Keynote', 'Booth', 'Action Item', 'Idea', 'Speaker', 'Workshop'];
 
@@ -56,7 +57,6 @@ export function MomentCaptureScreen() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [voiceState, setVoiceState] = useState<'idle' | 'recording'>('idle');
   const [photoUri, setPhotoUri] = useState('');
-  const [inputFocused, setInputFocused] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
 
@@ -70,18 +70,22 @@ export function MomentCaptureScreen() {
 
   // Focus glow animation
   const glowOpacity = useSharedValue(0);
+  const borderGlow = useSharedValue(0);
   const focusGlowStyle = useAnimatedStyle(() => ({
     opacity: glowOpacity.value,
   }));
+  const borderStyle = useAnimatedStyle(() => ({
+    borderColor: borderGlow.value === 1 ? Colors.borderGlow : Colors.border,
+  }));
 
   const handleFocus = () => {
-    setInputFocused(true);
     glowOpacity.value = withTiming(1, { duration: 200 });
+    borderGlow.value = withTiming(1, { duration: 200 });
   };
 
   const handleBlur = () => {
-    setInputFocused(false);
     glowOpacity.value = withTiming(0, { duration: 200 });
+    borderGlow.value = withTiming(0, { duration: 200 });
   };
 
   // Voice button animation
@@ -92,7 +96,7 @@ export function MomentCaptureScreen() {
     if (voiceState === 'recording') {
       micPulse.value = withRepeat(
         withSequence(
-          withTiming(1.2, { duration: 600 }),
+          withTiming(1.25, { duration: 600 }),
           withTiming(1, { duration: 600 }),
         ),
         -1,
@@ -111,7 +115,7 @@ export function MomentCaptureScreen() {
 
   const micPulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: micPulse.value }],
-    opacity: voiceState === 'recording' ? (micPulse.value - 1) * -3.33 + 0.4 : 0,
+    opacity: voiceState === 'recording' ? (micPulse.value - 1) * -3.33 + 0.35 : 0,
   }));
 
   const handleMicPressIn = () => {
@@ -137,8 +141,6 @@ export function MomentCaptureScreen() {
         Alert.alert('Permission required', 'Microphone access is needed to record voice notes.');
         return;
       }
-      // Starting a voice recording clears any attached photo to keep the
-      // moment type unambiguous.
       setPhotoUri('');
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording } = await Audio.Recording.createAsync(
@@ -189,8 +191,6 @@ export function MomentCaptureScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets.length > 0) {
-      // Attaching a photo clears any existing voice recording to keep the
-      // moment type unambiguous.
       setRecordingUri(null);
       setPhotoUri(result.assets[0].uri);
     }
@@ -230,14 +230,18 @@ export function MomentCaptureScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      {/* Ambient glow */}
+      <View style={styles.ambientGlow} pointerEvents="none" />
+
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 110 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
         <Animated.View style={[styles.header, headerAnim]}>
+          <Text style={styles.eyebrow}>✦  New Entry</Text>
           <Text style={styles.title}>Capture Moment</Text>
           <Text style={styles.subtitle}>Document your event memories with text, voice, or photos</Text>
         </Animated.View>
@@ -245,10 +249,10 @@ export function MomentCaptureScreen() {
         {/* Text Input */}
         <Animated.View style={inputAnim}>
           <Animated.View style={[styles.inputGlow, focusGlowStyle]} />
-          <View style={[styles.inputWrap, inputFocused && styles.inputFocused]}>
+          <Animated.View style={[styles.inputWrap, borderStyle]}>
             <TextInput
               placeholder="What's happening right now…"
-              placeholderTextColor={Colors.secondaryText}
+              placeholderTextColor={Colors.mutedText}
               value={text}
               onChangeText={setText}
               onFocus={handleFocus}
@@ -258,58 +262,71 @@ export function MomentCaptureScreen() {
               textAlignVertical="top"
               maxLength={MAX_CONTENT_LENGTH}
             />
-          </View>
+            <Text style={styles.charCount}>{text.length}/{MAX_CONTENT_LENGTH}</Text>
+          </Animated.View>
         </Animated.View>
 
-        {/* Voice Button */}
-        <Animated.View style={[styles.voiceRow, voiceAnim]}>
-          <Text style={styles.sectionLabel}>Voice Note</Text>
-          <View style={styles.micWrapper}>
-            <Animated.View style={[styles.micPulseRing, micPulseStyle]} />
-            <AnimatedPressable
-              style={[
-                styles.micButton,
-                voiceState === 'recording' && styles.micButtonActive,
-                micAnimStyle,
-                Shadow.soft,
-              ]}
-              onPress={handleMicToggle}
-              onPressIn={handleMicPressIn}
-              onPressOut={handleMicPressOut}
-            >
-              <Text style={styles.micIcon}>{voiceState === 'recording' ? '■' : '🎤'}</Text>
-            </AnimatedPressable>
+        {/* Media Row — Voice + Photo */}
+        <Animated.View style={[styles.mediaRow, voiceAnim]}>
+          {/* Voice Button */}
+          <View style={styles.mediaCard}>
+            <Text style={styles.sectionLabel}>Voice Note</Text>
+            <View style={styles.micWrapper}>
+              <Animated.View style={[styles.micPulseRing, micPulseStyle]} />
+              <AnimatedPressable
+                style={[
+                  styles.micButtonOuter,
+                  micAnimStyle,
+                  Shadow.soft,
+                ]}
+                onPress={handleMicToggle}
+                onPressIn={handleMicPressIn}
+                onPressOut={handleMicPressOut}
+              >
+                {voiceState === 'recording' ? (
+                  <View style={[styles.micButton, styles.micButtonActive]}>
+                    <Text style={styles.micIconStop}>■</Text>
+                  </View>
+                ) : (
+                  <LinearGradient
+                    colors={recordingUri ? Gradients.accent : ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.04)']}
+                    style={styles.micButton}
+                  >
+                    <Text style={styles.micIcon}>🎙</Text>
+                  </LinearGradient>
+                )}
+              </AnimatedPressable>
+            </View>
+            <Text style={styles.voiceStatus}>
+              {voiceState === 'recording'
+                ? '● Recording…'
+                : recordingUri
+                ? '✓ Saved'
+                : 'Tap to record'}
+            </Text>
           </View>
-          <Text style={styles.voiceStatus}>
-            {voiceState === 'recording'
-              ? 'Recording… tap to stop'
-              : recordingUri
-              ? 'Recording saved ✓ — tap to re-record'
-              : 'Tap to record'}
-          </Text>
-        </Animated.View>
 
-        {/* Photo Picker */}
-        <Animated.View style={[styles.photoSection, photoAnim]}>
-          <Text style={styles.sectionLabel}>Photo</Text>
-          <View style={styles.photoTile}>
+          {/* Photo Picker */}
+          <Animated.View style={[styles.mediaCard, photoAnim]}>
+            <Text style={styles.sectionLabel}>Photo</Text>
             {photoUri ? (
-              <>
-                <Text style={styles.photoPreview} numberOfLines={1}>📷 Photo attached</Text>
-                <Pressable onPress={() => setPhotoUri('')}>
+              <View style={styles.photoAttached}>
+                <LinearGradient colors={Gradients.accent} style={styles.photoIcon}>
+                  <Text style={styles.photoIconText}>📸</Text>
+                </LinearGradient>
+                <Pressable onPress={() => setPhotoUri('')} style={styles.photoRemoveBtn}>
                   <Text style={styles.photoRemove}>Remove</Text>
                 </Pressable>
-              </>
+              </View>
             ) : (
-              <Pressable
-                style={styles.photoAdd}
-                onPress={handlePickPhoto}
-              >
-                <Text style={styles.photoAddIcon}>＋</Text>
+              <Pressable style={styles.photoAdd} onPress={handlePickPhoto}>
+                <View style={styles.photoAddCircle}>
+                  <Text style={styles.photoAddIcon}>＋</Text>
+                </View>
                 <Text style={styles.photoAddLabel}>Add Photo</Text>
               </Pressable>
             )}
-          </View>
+          </Animated.View>
         </Animated.View>
 
         {/* Tags */}
@@ -346,15 +363,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  ambientGlow: {
+    position: 'absolute',
+    bottom: -100,
+    right: -80,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: Colors.neon,
+    opacity: 0.08,
+  },
   scroll: {
     flex: 1,
   },
   content: {
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
     gap: Spacing.lg,
   },
   header: {
-    gap: 4,
+    gap: 5,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.accent,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
   title: {
     ...Typography.title,
@@ -362,6 +397,7 @@ const styles = StyleSheet.create({
   subtitle: {
     ...Typography.caption,
     fontSize: 14,
+    lineHeight: 20,
   },
   inputGlow: {
     position: 'absolute',
@@ -371,43 +407,60 @@ const styles = StyleSheet.create({
     bottom: -4,
     borderRadius: Radius.xl + 4,
     backgroundColor: Colors.primary,
-    opacity: 0.08,
+    opacity: 0.1,
     zIndex: 0,
   },
   inputWrap: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: Radius.xxl,
     padding: Spacing.md,
     minHeight: 160,
     borderWidth: 1.5,
     borderColor: Colors.border,
     ...Shadow.soft,
   },
-  inputFocused: {
-    borderColor: Colors.primary,
-  },
   input: {
     ...Typography.body,
     flex: 1,
-    minHeight: 130,
+    minHeight: 120,
     color: Colors.text,
     fontSize: 17,
     lineHeight: 26,
   },
-  sectionLabel: {
-    ...Typography.caption,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 8,
+  charCount: {
+    ...Typography.small,
+    textAlign: 'right',
+    marginTop: 8,
+    color: Colors.mutedText,
   },
-  voiceRow: {
-    gap: 0,
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.mutedText,
+    textTransform: 'uppercase',
+    letterSpacing: 1.0,
+    marginBottom: 12,
+  },
+  mediaRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  mediaCard: {
+    flex: 1,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: Radius.xxl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    minHeight: 150,
+    ...Shadow.soft,
   },
   micWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 90,
+    height: 76,
+    marginBottom: 8,
   },
   micPulseRing: {
     position: 'absolute',
@@ -416,14 +469,17 @@ const styles = StyleSheet.create({
     borderRadius: 38,
     backgroundColor: Colors.destructive,
   },
+  micButtonOuter: {
+    borderRadius: 34,
+    overflow: 'hidden',
+  },
   micButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.surface,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.border,
   },
   micButtonActive: {
@@ -431,50 +487,72 @@ const styles = StyleSheet.create({
     borderColor: Colors.destructive,
   },
   micIcon: {
-    fontSize: 26,
+    fontSize: 24,
+  },
+  micIconStop: {
+    fontSize: 18,
+    color: Colors.destructive,
   },
   voiceStatus: {
-    ...Typography.small,
+    fontSize: 11,
+    color: Colors.mutedText,
     textAlign: 'center',
-    marginTop: 8,
-  },
-  photoSection: {
-    gap: 0,
-  },
-  photoTile: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderStyle: 'dashed',
-    overflow: 'hidden',
-    minHeight: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.md,
-    gap: 8,
-  },
-  photoAdd: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  photoAddIcon: {
-    fontSize: 28,
-    color: Colors.secondaryText,
-    lineHeight: 32,
-  },
-  photoAddLabel: {
-    ...Typography.caption,
     fontWeight: '500',
   },
-  photoPreview: {
-    ...Typography.body,
-    fontSize: 14,
-    color: Colors.text,
+  photoAttached: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  photoIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoIconText: {
+    fontSize: 22,
+  },
+  photoRemoveBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.destructive + '40',
+    backgroundColor: Colors.destructiveLight,
   },
   photoRemove: {
-    ...Typography.caption,
+    fontSize: 11,
     color: Colors.destructive,
+    fontWeight: '600',
+  },
+  photoAdd: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  photoAddCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.borderLight,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoAddIcon: {
+    fontSize: 22,
+    color: Colors.secondaryText,
+    lineHeight: 26,
+  },
+  photoAddLabel: {
+    fontSize: 11,
+    color: Colors.mutedText,
     fontWeight: '500',
   },
   tagsSection: {

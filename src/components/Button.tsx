@@ -5,7 +5,8 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Colors, Radius, Typography } from '../design/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Gradients, Radius, Shadow, Typography } from '../design/tokens';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -25,18 +26,43 @@ export function Button({
   style,
 }: ButtonProps) {
   const scale = useSharedValue(1);
+  const glowOpacity = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
+    opacity: glowOpacity.value,
   }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+    scale.value = withSpring(0.96, { damping: 15, stiffness: 300 });
+    glowOpacity.value = withSpring(0.85, { damping: 15, stiffness: 300 });
   };
 
   const handlePressOut = () => {
     scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    glowOpacity.value = withSpring(1, { damping: 15, stiffness: 300 });
   };
+
+  if (variant === 'primary') {
+    return (
+      <AnimatedPressable
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled}
+        style={[animatedStyle, disabled && styles.disabled, style]}
+      >
+        <LinearGradient
+          colors={Gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.base, Shadow.medium]}
+        >
+          <Text style={styles.label}>{label}</Text>
+        </LinearGradient>
+      </AnimatedPressable>
+    );
+  }
 
   return (
     <AnimatedPressable
@@ -47,7 +73,6 @@ export function Button({
       style={[
         animatedStyle,
         styles.base,
-        variant === 'primary' && styles.primary,
         variant === 'secondary' && styles.secondary,
         variant === 'ghost' && styles.ghost,
         disabled && styles.disabled,
@@ -69,32 +94,32 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: Radius.lg,
-    paddingVertical: 16,
+    borderRadius: Radius.xl,
+    paddingVertical: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primary: {
-    backgroundColor: Colors.primary,
-  },
   secondary: {
     backgroundColor: Colors.primaryLight,
+    borderWidth: 1,
+    borderColor: Colors.borderGlow,
   },
   ghost: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   disabled: {
-    opacity: 0.45,
+    opacity: 0.4,
   },
   label: {
     ...Typography.subheadline,
-    color: Colors.surface,
+    color: Colors.text,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   secondaryLabel: {
-    color: Colors.primary,
+    color: Colors.accent,
   },
   ghostLabel: {
     color: Colors.secondaryText,
