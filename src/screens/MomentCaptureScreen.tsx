@@ -22,6 +22,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { saveMoment } from '../storage/localDb';
 import { Moment } from '../types/moment';
+import { MAX_CONTENT_LENGTH } from '../utils/validation';
 import { TagChip } from '../components/TagChip';
 import { Button } from '../components/Button';
 import { Colors, Radius, Shadow, Spacing, Typography } from '../design/tokens';
@@ -126,20 +127,30 @@ export function MomentCaptureScreen() {
   };
 
   const onSaveMoment = async () => {
-    const moment: Moment = {
-      id: `${Date.now()}`,
+    const trimmed = text.trim();
+    if (trimmed.length === 0 || trimmed.length > MAX_CONTENT_LENGTH) {
+      Alert.alert('Invalid input', `Content must be between 1 and ${MAX_CONTENT_LENGTH} characters.`);
+      return;
+    }
+
+    const moment: Omit<Moment, 'id'> = {
       type: photoUri ? 'photo' : voiceState === 'recording' ? 'voice' : 'text',
-      content: text.trim(),
+      content: trimmed,
       tags: selectedTags,
       createdAt: new Date().toISOString(),
     };
 
-    await saveMoment(moment);
-    setText('');
-    setSelectedTags([]);
-    setVoiceState('idle');
-    setPhotoUri('');
-    Alert.alert('Saved ✓', 'Moment captured and stored.');
+    try {
+      await saveMoment(moment);
+      setText('');
+      setSelectedTags([]);
+      setVoiceState('idle');
+      setPhotoUri('');
+      Alert.alert('Saved ✓', 'Moment captured and stored.');
+    } catch (err) {
+      console.error('saveMoment failed:', err);
+      Alert.alert('Error', 'Failed to save moment. Please try again.');
+    }
   };
 
   return (
@@ -173,6 +184,7 @@ export function MomentCaptureScreen() {
               style={styles.input}
               multiline
               textAlignVertical="top"
+              maxLength={MAX_CONTENT_LENGTH}
             />
           </View>
         </Animated.View>

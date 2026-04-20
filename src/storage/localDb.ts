@@ -1,7 +1,38 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DailySummary, Moment } from '../types/moment';
+import { isValidMoment, MAX_CONTENT_LENGTH, MAX_TAGS_PER_MOMENT } from '../utils/validation';
 
 const MOMENTS_KEY = 'capevent_ai_moments';
+
+/**
+ * Generates a collision-resistant unique identifier.
+ * Uses the Web Crypto API (available in React Native ≥ 0.73 / Hermes).
+ * Falls back to a high-entropy composite when the API is unavailable.
+ */
+function generateId(): string {
+  if (typeof crypto !== 'undefined') {
+    if (typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    // crypto.getRandomValues is available in more environments than randomUUID
+    if (typeof crypto.getRandomValues === 'function') {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      // Format as a UUID v4 string
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      return [...bytes]
+        .map((b, i) =>
+          [4, 6, 8, 10].includes(i) ? `-${b.toString(16).padStart(2, '0')}` : b.toString(16).padStart(2, '0'),
+        )
+        .join('');
+    }
+  }
+  // Last-resort fallback: timestamp + two independent Math.random values
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2).padEnd(8, '0')}-${Math.random().toString(36).slice(2).padEnd(8, '0')}`;
+}
+
+export { generateId };
 
 export async function loadMoments(): Promise<Moment[]> {
   const raw = await AsyncStorage.getItem(MOMENTS_KEY);
@@ -10,15 +41,29 @@ export async function loadMoments(): Promise<Moment[]> {
   }
 
   try {
-    return JSON.parse(raw) as Moment[];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    // Filter out any entries that fail structural validation so corrupted
+    // or tampered storage entries do not crash the application.
+    return parsed.filter(isValidMoment);
   } catch {
     return [];
   }
 }
 
-export async function saveMoment(moment: Moment): Promise<void> {
+export async function saveMoment(moment: Omit<Moment, 'id'>): Promise<void> {
+  // Generate a secure ID and enforce content/tag limits as defence-in-depth.
+  const sanitised: Moment = {
+    ...moment,
+    id: generateId(),
+    content: moment.content.slice(0, MAX_CONTENT_LENGTH),
+    tags: moment.tags.slice(0, MAX_TAGS_PER_MOMENT),
+  };
+
   const moments = await loadMoments();
-  const updated = [moment, ...moments].slice(0, 100);
+  const updated = [sanitised, ...moments].slice(0, 100);
   await AsyncStorage.setItem(MOMENTS_KEY, JSON.stringify(updated));
 }
 
