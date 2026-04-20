@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -20,6 +20,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 import { saveMoment } from '../storage/localDb';
 import { Moment } from '../types/moment';
 import { MAX_CONTENT_LENGTH } from '../utils/validation';
@@ -55,6 +57,8 @@ export function MomentCaptureScreen() {
   const [voiceState, setVoiceState] = useState<'idle' | 'recording'>('idle');
   const [photoUri, setPhotoUri] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const [recordingUri, setRecordingUri] = useState<string | null>(null);
 
   const isSaveDisabled = text.trim().length === 0;
 
@@ -126,6 +130,72 @@ export function MomentCaptureScreen() {
     );
   };
 
+  const startRecording = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Microphone access is needed to record voice notes.');
+        return;
+      }
+      // Starting a voice recording clears any attached photo to keep the
+      // moment type unambiguous.
+      setPhotoUri('');
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      );
+      recordingRef.current = recording;
+      setVoiceState('recording');
+    } catch (err) {
+      console.error('startRecording failed:', err);
+      Alert.alert('Error', 'Could not start recording. Please try again.');
+    }
+  };
+
+  const stopRecording = async () => {
+    const recording = recordingRef.current;
+    if (!recording) return;
+    try {
+      await recording.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      const uri = recording.getURI();
+      recordingRef.current = null;
+      setRecordingUri(uri ?? null);
+      setVoiceState('idle');
+    } catch (err) {
+      console.error('stopRecording failed:', err);
+      Alert.alert('Error', 'Could not stop recording. Please try again.');
+    }
+  };
+
+  const handleMicToggle = async () => {
+    if (voiceState === 'recording') {
+      await stopRecording();
+    } else {
+      setRecordingUri(null);
+      await startRecording();
+    }
+  };
+
+  const handlePickPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Photo library access is needed to attach photos.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      // Attaching a photo clears any existing voice recording to keep the
+      // moment type unambiguous.
+      setRecordingUri(null);
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
+
   const onSaveMoment = async () => {
     const trimmed = text.trim();
     if (trimmed.length === 0 || trimmed.length > MAX_CONTENT_LENGTH) {
@@ -134,10 +204,11 @@ export function MomentCaptureScreen() {
     }
 
     const moment: Omit<Moment, 'id'> = {
-      type: photoUri ? 'photo' : voiceState === 'recording' ? 'voice' : 'text',
+      type: photoUri ? 'photo' : recordingUri ? 'voice' : 'text',
       content: trimmed,
       tags: selectedTags,
       createdAt: new Date().toISOString(),
+      mediaUri: photoUri || recordingUri || undefined,
     };
 
     try {
@@ -146,6 +217,7 @@ export function MomentCaptureScreen() {
       setSelectedTags([]);
       setVoiceState('idle');
       setPhotoUri('');
+      setRecordingUri(null);
       Alert.alert('Saved ✓', 'Moment captured and stored.');
     } catch (err) {
       console.error('saveMoment failed:', err);
@@ -201,7 +273,7 @@ export function MomentCaptureScreen() {
                 micAnimStyle,
                 Shadow.soft,
               ]}
-              onPress={() => setVoiceState((v) => (v === 'recording' ? 'idle' : 'recording'))}
+              onPress={handleMicToggle}
               onPressIn={handleMicPressIn}
               onPressOut={handleMicPressOut}
             >
@@ -209,7 +281,11 @@ export function MomentCaptureScreen() {
             </AnimatedPressable>
           </View>
           <Text style={styles.voiceStatus}>
-            {voiceState === 'recording' ? 'Recording… tap to stop' : 'Tap to record'}
+            {voiceState === 'recording'
+              ? 'Recording… tap to stop'
+              : recordingUri
+              ? 'Recording saved ✓ — tap to re-record'
+              : 'Tap to record'}
           </Text>
         </Animated.View>
 
@@ -219,7 +295,7 @@ export function MomentCaptureScreen() {
           <View style={styles.photoTile}>
             {photoUri ? (
               <>
-                <Text style={styles.photoPreview} numberOfLines={1}>📷 {photoUri}</Text>
+                <Text style={styles.photoPreview} numberOfLines={1}>📷 Photo attached</Text>
                 <Pressable onPress={() => setPhotoUri('')}>
                   <Text style={styles.photoRemove}>Remove</Text>
                 </Pressable>
@@ -227,7 +303,7 @@ export function MomentCaptureScreen() {
             ) : (
               <Pressable
                 style={styles.photoAdd}
-                onPress={() => setPhotoUri('photo_' + Date.now())}
+                onPress={handlePickPhoto}
               >
                 <Text style={styles.photoAddIcon}>＋</Text>
                 <Text style={styles.photoAddLabel}>Add Photo</Text>

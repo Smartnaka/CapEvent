@@ -52,5 +52,9 @@ export function isValidMoment(value: unknown): value is Moment {
     return false;
   }
 
+  if (m.mediaUri !== undefined && typeof m.mediaUri !== 'string') {
+    return false;
+  }
+
   return true;
 }

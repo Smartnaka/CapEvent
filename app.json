@@ -15,14 +15,24 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "CapEvent AI uses your camera to attach photos to event moments.",
+        "NSPhotoLibraryUsageDescription": "CapEvent AI accesses your photo library to attach images to event moments.",
+        "NSMicrophoneUsageDescription": "CapEvent AI uses your microphone to record voice notes for event moments."
+      }
     },
     "android": {
       "package": "com.smartnaka.capevent",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#206CFF"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -30,7 +40,20 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CapEvent AI accesses your photos to attach images to event moments.",
+          "cameraPermission": "CapEvent AI uses your camera to capture event photos."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "CapEvent AI uses your microphone to record voice notes for event moments."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -38,7 +61,8 @@
     "extra": {
       "eas": {
         "projectId": "e6318db7-d4cd-48cd-8ce3-fe3cba74df31"
-      }
+      },
+      "openaiApiKey": ""
     }
   }
 }
