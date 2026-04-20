@@ -6,6 +6,8 @@ export interface Moment {
   content: string;
   tags: string[];
   createdAt: string;
+  /** URI of the associated media file (photo or voice recording). */
+  mediaUri?: string;
 }
 
 export interface DailySummary {

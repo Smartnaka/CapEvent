@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DailySummary, Moment } from '../types/moment';
 import { isValidMoment, MAX_CONTENT_LENGTH, MAX_TAGS_PER_MOMENT } from '../utils/validation';
+import { generateAiDailySummary } from '../services/aiSummary';
 
 const MOMENTS_KEY = 'capevent_ai_moments';
 
@@ -79,6 +80,12 @@ export async function buildDailySummary(): Promise<DailySummary> {
       keyMoments: ['No key moments yet'],
       actionableInsights: ['Capture your first event moment to unlock recommendations.'],
     };
+  }
+
+  // Attempt to generate a real AI summary; fall back to local if unavailable.
+  const aiResult = await generateAiDailySummary(moments, today);
+  if (aiResult) {
+    return { date: today, ...aiResult };
   }
 
   const tagCounts = moments.reduce<Record<string, number>>((acc, moment) => {
