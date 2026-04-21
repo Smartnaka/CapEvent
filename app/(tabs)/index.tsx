@@ -3,5 +3,10 @@ import { HomeDashboardScreen } from '@/src/screens/HomeDashboardScreen';
 
 export default function HomeTab() {
   const router = useRouter();
-  return <HomeDashboardScreen onNavigateDetails={() => router.push('/(tabs)/details')} />;
+  return (
+    <HomeDashboardScreen
+      onNavigateDetails={() => router.push('/(tabs)/summary')}
+      onQuickCapture={() => router.push('/(tabs)/capture')}
+    />
+  );
 }
