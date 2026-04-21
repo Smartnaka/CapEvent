@@ -21,7 +21,7 @@ export function GlowButton({ label, icon, onPress }: { label: string; icon?: key
         onPress={onPress}
         style={styles.button}
       >
-        {icon ? <Feather name={icon} size={16} color="#0A0A0A" /> : null}
+        {icon ? <Feather name={icon} size={16} color={Colors.background} /> : null}
         <Text style={styles.buttonText}>{label}</Text>
       </Pressable>
     </Animated.View>
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     ...Typography.label,
-    color: '#0A0A0A',
+    color: Colors.background,
     fontSize: 14,
     fontWeight: '700',
   },

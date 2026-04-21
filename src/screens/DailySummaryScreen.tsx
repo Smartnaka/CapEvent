@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
-  Pressable,
   ScrollView,
   Share,
   StyleSheet,
@@ -105,10 +104,10 @@ export function DailySummaryScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
-          <Pressable style={styles.actionButton} onPress={() => { void onShare(); }}>
-            <Feather name="share" size={16} color={Colors.accent} />
-            <Text style={styles.actionButtonText}>Share Summary</Text>
-          </Pressable>
+          <Button
+            label="Share Summary"
+            onPress={() => { void onShare(); }}
+          />
           <Button
             label="View Related Moments"
             onPress={() => { void onViewMoments(); }}
@@ -235,21 +234,5 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: Spacing.sm,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.tintedBackground,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-    paddingVertical: 14,
-  },
-  actionButtonText: {
-    ...Typography.label,
-    color: Colors.accent,
-    fontWeight: '700',
   },
 });

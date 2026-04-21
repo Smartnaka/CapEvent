@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   primaryLabel: {
-    color: '#0A0A0A',
+    color: Colors.background,
     fontWeight: '700',
   },
   secondaryLabel: {

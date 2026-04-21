@@ -100,7 +100,11 @@ export function HomeDashboardScreen({ onNavigateDetails, onQuickCapture }: HomeD
 
         {/* Capture Button */}
         <View style={styles.captureWrap}>
-          <Button label="Capture Moment" onPress={onQuickCapture ?? (() => {})} />
+          <Button
+            label="Capture Moment"
+            onPress={onQuickCapture ?? (() => {})}
+            disabled={!onQuickCapture}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -84,9 +84,14 @@ export function MomentCaptureScreen() {
       return;
     }
 
-    const { granted } = await Audio.requestPermissionsAsync();
+    const { granted, canAskAgain } = await Audio.requestPermissionsAsync();
     if (!granted) {
-      Alert.alert('Permission required', 'Microphone access is needed to record voice moments.');
+      Alert.alert(
+        'Microphone Permission Required',
+        canAskAgain
+          ? 'Microphone access is needed to record voice moments.'
+          : 'Microphone access was denied. Please enable it in your device Settings > Privacy > Microphone.',
+      );
       return;
     }
 
@@ -106,9 +111,14 @@ export function MomentCaptureScreen() {
   };
 
   const handlePhoto = async () => {
-    const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { granted, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!granted) {
-      Alert.alert('Permission required', 'Photo library access is needed to upload photos.');
+      Alert.alert(
+        'Photo Library Permission Required',
+        canAskAgain
+          ? 'Photo library access is needed to upload photos.'
+          : 'Photo library access was denied. Please enable it in your device Settings > Privacy > Photos.',
+      );
       return;
     }
 
