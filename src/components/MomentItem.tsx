@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Shadow, Spacing, Typography } from '../design/tokens';
+import { Colors, Radius, Spacing, Typography } from '../design/tokens';
 import { TagChip } from './TagChip';
 import { Moment } from '../types/moment';
 
@@ -18,14 +18,16 @@ export function MomentItem({ moment }: MomentItemProps) {
   const typeIcon = moment.type === 'voice' ? '🎤' : moment.type === 'photo' ? '📷' : '✏️';
 
   return (
-    <View style={[styles.card, Shadow.soft]}>
+    <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.icon}>{typeIcon}</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.icon}>{typeIcon}</Text>
+          <Text style={styles.content} numberOfLines={2}>
+            {moment.content}
+          </Text>
+        </View>
         <Text style={styles.time}>{formattedTime}</Text>
       </View>
-      <Text style={styles.content} numberOfLines={3}>
-        {moment.content}
-      </Text>
       {moment.tags.length > 0 && (
         <View style={styles.tags}>
           {moment.tags.map((tag) => (
@@ -44,27 +46,38 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    flex: 1,
   },
   icon: {
-    fontSize: 18,
+    fontSize: 16,
+    marginTop: 2,
   },
   time: {
     ...Typography.small,
+    flexShrink: 0,
   },
   content: {
     ...Typography.body,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
   },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+    marginTop: 4,
   },
 });

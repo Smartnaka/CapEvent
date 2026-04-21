@@ -1,12 +1,12 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Colors, Radius, Shadow, Spacing, Typography } from '@/src/design/tokens';
-import { GlassCard, GlowButton } from '@/src/components/premium/PremiumPrimitives';
-import { loadEvents } from '@/src/storage/localDb';
-import { EventRecord } from '@/src/types/event';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors, Radius, Spacing, Typography } from '@/src/design/tokens';
+import { MomentItem } from '@/src/components/MomentItem';
+import { Button } from '@/src/components/Button';
+import { buildDailySummary, loadMoments } from '@/src/storage/localDb';
+import { Moment, DailySummary } from '@/src/types/moment';
 
 interface HomeDashboardScreenProps {
   onNavigateDetails?: () => void;
@@ -14,14 +14,23 @@ interface HomeDashboardScreenProps {
 }
 
 export function HomeDashboardScreen({ onNavigateDetails, onQuickCapture }: HomeDashboardScreenProps) {
-  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [moments, setMoments] = useState<Moment[]>([]);
+  const [summary, setSummary] = useState<DailySummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const hydrateEvents = useCallback(async () => {
+  const hydrate = useCallback(async () => {
     setIsLoading(true);
     try {
-      const storedEvents = await loadEvents();
-      setEvents(storedEvents);
+      const [allMoments, dailySummary] = await Promise.all([
+        loadMoments(),
+        buildDailySummary(),
+      ]);
+      const today = new Date().toISOString().slice(0, 10);
+      const todayMoments = allMoments
+        .filter((m) => m.createdAt.slice(0, 10) === today)
+        .slice(0, 5);
+      setMoments(todayMoments);
+      setSummary(dailySummary);
     } finally {
       setIsLoading(false);
     }
@@ -29,89 +38,164 @@ export function HomeDashboardScreen({ onNavigateDetails, onQuickCapture }: HomeD
 
   useFocusEffect(
     useCallback(() => {
-      void hydrateEvents();
-    }, [hydrateEvents]),
+      void hydrate();
+    }, [hydrate]),
   );
 
-  const suggestions = useMemo(() => {
-    if (!events.length) {
-      return ['Create your first event to unlock smart follow-up suggestions.'];
-    }
-
-    const latest = events[0];
-    return [
-      `Follow up with guests from ${latest.name}.`,
-      latest.vipContacts ? `Reach out to VIP contacts: ${latest.vipContacts}.` : 'Add VIP contacts in your next capture for better planning.',
-      latest.notes ? `Convert “${latest.notes}” into next action items.` : 'Add notes to capture event outcomes and next actions.',
-    ];
-  }, [events]);
-
-  const latestEvent = events[0];
+  const dateLabel = new Date().toLocaleDateString([], {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInDown.duration(450)}>
-          <Text style={styles.title}>Dashboard</Text>
-          <Text style={styles.subtitle}>Your real event pipeline, synced from device storage.</Text>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(120).duration(450)}>
-          <GlassCard style={styles.hero}>
-            <Text style={styles.heroEyebrow}>Live Overview</Text>
-            {isLoading ? (
-              <Text style={styles.heroText}>Loading events…</Text>
-            ) : latestEvent ? (
-              <Text style={styles.heroText}>{events.length} saved events · latest: {latestEvent.name}</Text>
-            ) : (
-              <Text style={styles.heroText}>No events yet. Create one to start tracking insights.</Text>
-            )}
-            <GlowButton
-              label={latestEvent ? 'Open Event Details' : 'Create First Event'}
-              icon="arrow-up-right"
-              onPress={latestEvent ? onNavigateDetails : onQuickCapture}
-            />
-          </GlassCard>
-        </Animated.View>
-
-        <View style={styles.section}>
-          {suggestions.map((item, index) => (
-            <Animated.View key={`${item}-${index}`} entering={FadeInDown.delay(180 + index * 70).duration(420)}>
-              <View style={styles.suggestionCard}>
-                <Feather name="star" color={Colors.secondary} size={18} />
-                <Text style={styles.suggestionText}>{item}</Text>
-              </View>
-            </Animated.View>
-          ))}
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Today</Text>
+          <Text style={styles.date}>{dateLabel}</Text>
         </View>
 
-        <View style={styles.fabWrap}>
-          <GlowButton label="Quick Capture" icon="plus" onPress={onQuickCapture} />
+        {/* Recent Moments */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Moments</Text>
+          {isLoading ? (
+            <Text style={styles.emptyText}>Loading…</Text>
+          ) : moments.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No moments captured today.</Text>
+              <Text style={styles.emptyHint}>Tap "Capture Moment" to start logging.</Text>
+            </View>
+          ) : (
+            moments.map((moment) => (
+              <Pressable key={moment.id} onPress={onNavigateDetails}>
+                <MomentItem moment={moment} />
+              </Pressable>
+            ))
+          )}
+        </View>
+
+        {/* Daily Summary Card */}
+        {summary && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Daily Summary</Text>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryBadge}>
+                <Text style={styles.summaryBadgeText}>AI Generated</Text>
+              </View>
+              <Text style={styles.summaryText}>{summary.summaryText}</Text>
+              {summary.actionableInsights.slice(0, 3).map((insight, i) => (
+                <View key={i} style={styles.insightRow}>
+                  <Text style={styles.bullet}>·</Text>
+                  <Text style={styles.insightText}>{insight}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Capture Button */}
+        <View style={styles.captureWrap}>
+          <Button label="Capture Moment" onPress={onQuickCapture ?? (() => {})} />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.lg, paddingTop: 72, gap: Spacing.lg, paddingBottom: 160 },
-  title: { ...Typography.title, fontSize: 34 },
-  subtitle: { ...Typography.body, color: Colors.textMuted, marginTop: 6 },
-  hero: { ...Shadow.card },
-  heroEyebrow: { ...Typography.label, marginBottom: 12 },
-  heroText: { ...Typography.heading, marginBottom: Spacing.md, lineHeight: 30 },
-  section: { gap: Spacing.md },
-  suggestionCard: {
-    borderRadius: Radius.lg,
-    backgroundColor: 'rgba(17,20,35,0.95)',
-    borderWidth: 1,
-    borderColor: Colors.stroke,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    gap: 10,
-    ...Shadow.card,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
   },
-  suggestionText: { ...Typography.body, flex: 1, color: Colors.text },
-  fabWrap: { position: 'absolute', right: 24, bottom: 40 },
+  content: {
+    padding: Spacing.lg,
+    gap: Spacing.lg,
+    paddingBottom: 120,
+  },
+  header: {
+    gap: 4,
+  },
+  title: {
+    ...Typography.largeTitle,
+  },
+  date: {
+    ...Typography.label,
+    color: Colors.textMuted,
+  },
+  section: {
+    gap: Spacing.sm,
+  },
+  sectionTitle: {
+    ...Typography.label,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  emptyCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 4,
+  },
+  emptyText: {
+    ...Typography.body,
+    color: Colors.textMuted,
+  },
+  emptyHint: {
+    ...Typography.caption,
+  },
+  summaryCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: Spacing.sm,
+  },
+  summaryBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.tintedBackground,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  summaryBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.accent,
+    letterSpacing: 0.4,
+  },
+  summaryText: {
+    ...Typography.body,
+    lineHeight: 22,
+  },
+  insightRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  bullet: {
+    color: Colors.accent,
+    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  insightText: {
+    ...Typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+  },
+  captureWrap: {
+    marginTop: Spacing.sm,
+  },
 });

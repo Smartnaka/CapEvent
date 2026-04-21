@@ -1,79 +1,32 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  Pressable,
   ScrollView,
   Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { buildDailySummary, loadMoments } from '../storage/localDb';
 import { DailySummary } from '../types/moment';
-import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { Colors, Radius, Shadow, Spacing, Typography } from '../design/tokens';
-
-function useScreenEntrance(delay = 0) {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(12);
-
-  useEffect(() => {
-    opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
-    translateY.value = withDelay(delay, withSpring(0, { damping: 20, stiffness: 180 }));
-    // delay is a mount-time constant — intentionally excluded from deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-}
-
-interface StaggerItemProps {
-  children: React.ReactNode;
-  index: number;
-}
-
-function StaggerItem({ children, index }: StaggerItemProps) {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(16);
-
-  useEffect(() => {
-    const delay = 200 + index * 60;
-    opacity.value = withDelay(delay, withTiming(1, { duration: 350 }));
-    translateY.value = withDelay(delay, withSpring(0, { damping: 20, stiffness: 180 }));
-    // index is stable at mount time — intentionally excluded from deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const anim = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  return <Animated.View style={anim}>{children}</Animated.View>;
-}
+import { Colors, Radius, Spacing, Typography } from '../design/tokens';
 
 export function DailySummaryScreen() {
-  const insets = useSafeAreaInsets();
   const [summary, setSummary] = useState<DailySummary | null>(null);
-
-  const headerAnim = useScreenEntrance(0);
-  const heroAnim = useScreenEntrance(80);
-  const insightsAnim = useScreenEntrance(240);
+  const [isLoading, setIsLoading] = useState(true);
 
   const hydrateSummary = useCallback(async () => {
-    const next = await buildDailySummary();
-    setSummary(next);
+    setIsLoading(true);
+    try {
+      const next = await buildDailySummary();
+      setSummary(next);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -87,85 +40,83 @@ export function DailySummaryScreen() {
     });
   };
 
-  const onViewDetailedMoments = async () => {
+  const onViewMoments = async () => {
     const moments = await loadMoments();
-    Alert.alert('Detailed Moments', `You have ${moments.length} saved moments.`);
+    Alert.alert('Saved Moments', `You have ${moments.length} saved moments.`);
   };
 
-  if (!summary) {
+  if (isLoading || !summary) {
     return (
-      <View style={[styles.container, styles.loadingContainer, { paddingTop: insets.top }]}>
-        <Text style={styles.loadingText}>Generating summary…</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Generating summary…</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.container}>
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <Animated.View style={[styles.header, headerAnim]}>
+        <View style={styles.header}>
           <Text style={styles.title}>Daily Summary</Text>
-          <Text style={styles.dateText}>{summary.date}</Text>
-        </Animated.View>
+          <Text style={styles.date}>{summary.date}</Text>
+        </View>
 
-        {/* Hero Summary Card */}
-        <Animated.View style={heroAnim}>
-          <Card style={styles.heroCard}>
-            <View style={styles.heroMeta}>
-              <View style={styles.heroTag}>
-                <Text style={styles.heroTagText}>✦ AI Generated</Text>
-              </View>
-            </View>
-            <Text style={styles.summaryText}>{summary.summaryText}</Text>
-          </Card>
-        </Animated.View>
+        {/* Summary Card */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryBadge}>
+            <Text style={styles.summaryBadgeText}>AI Generated</Text>
+          </View>
+          <Text style={styles.summaryText}>{summary.summaryText}</Text>
+        </View>
 
         {/* Key Moments */}
         {summary.keyMoments.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Key Moments</Text>
-            <View style={styles.momentList}>
+            <View style={styles.listContainer}>
               {summary.keyMoments.map((moment, i) => (
-                <StaggerItem key={`moment-${i}`} index={i}>
-                  <View style={[styles.momentCard, Shadow.soft]}>
-                    <Text style={styles.momentIndex}>{i + 1}</Text>
-                    <Text style={styles.momentText} numberOfLines={3}>{moment}</Text>
-                  </View>
-                </StaggerItem>
+                <View key={`moment-${i}`} style={styles.listItem}>
+                  <Text style={styles.listIndex}>{i + 1}</Text>
+                  <Text style={styles.listText} numberOfLines={3}>{moment}</Text>
+                </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Insights */}
-        <Animated.View style={[styles.section, insightsAnim]}>
+        {/* Actionable Insights */}
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Actionable Insights</Text>
-          <Card tinted style={styles.insightsCard}>
+          <View style={styles.insightsCard}>
             {summary.actionableInsights.map((insight, i) => (
               <View key={`insight-${i}`} style={styles.insightRow}>
-                <Text style={styles.insightBullet}>→</Text>
+                <Feather name="arrow-right" size={14} color={Colors.accent} style={styles.insightIcon} />
                 <Text style={styles.insightText}>{insight}</Text>
               </View>
             ))}
-          </Card>
-        </Animated.View>
+          </View>
+        </View>
 
         {/* Actions */}
-        <Animated.View style={[styles.actions, insightsAnim]}>
-          <Button label="Share Summary" onPress={onShare} />
+        <View style={styles.actions}>
+          <Pressable style={styles.actionButton} onPress={() => { void onShare(); }}>
+            <Feather name="share" size={16} color={Colors.accent} />
+            <Text style={styles.actionButtonText}>Share Summary</Text>
+          </Pressable>
           <Button
-            label="View Detailed Moments"
-            onPress={onViewDetailedMoments}
-            variant="secondary"
+            label="View Related Moments"
+            onPress={() => { void onViewMoments(); }}
+            variant="ghost"
           />
-        </Animated.View>
+        </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -175,67 +126,71 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   loadingContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   loadingText: {
     ...Typography.body,
-    color: Colors.secondaryText,
-  },
-  scroll: {
-    flex: 1,
+    color: Colors.textMuted,
   },
   content: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
     gap: Spacing.lg,
+    paddingBottom: 120,
   },
   header: {
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
     gap: 4,
   },
   title: {
     ...Typography.largeTitle,
   },
-  dateText: {
-    ...Typography.caption,
-    fontWeight: '500',
+  date: {
+    ...Typography.label,
+    color: Colors.textMuted,
   },
-  heroCard: {
-    gap: Spacing.md,
-    ...Shadow.medium,
+  summaryCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: Spacing.sm,
   },
-  heroMeta: {
-    flexDirection: 'row',
-  },
-  heroTag: {
-    backgroundColor: Colors.primaryLight,
+  summaryBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.tintedBackground,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.accent,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
+    paddingVertical: 3,
   },
-  heroTagText: {
-    fontSize: 12,
+  summaryBadgeText: {
+    fontSize: 11,
     fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.accent,
+    letterSpacing: 0.4,
   },
   summaryText: {
     ...Typography.body,
-    lineHeight: 26,
+    lineHeight: 24,
   },
   section: {
-    gap: Spacing.md,
-  },
-  sectionTitle: {
-    ...Typography.headline,
-    fontSize: 18,
-  },
-  momentList: {
     gap: Spacing.sm,
   },
-  momentCard: {
+  sectionTitle: {
+    ...Typography.label,
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  listContainer: {
+    gap: Spacing.xs,
+  },
+  listItem: {
     backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: Spacing.md,
     flexDirection: 'row',
     gap: Spacing.md,
@@ -243,41 +198,58 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  momentIndex: {
+  listIndex: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.accent,
     minWidth: 20,
     marginTop: 2,
   },
-  momentText: {
+  listText: {
     ...Typography.body,
     flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
   },
   insightsCard: {
-    gap: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: Spacing.sm,
   },
   insightRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
     alignItems: 'flex-start',
   },
-  insightBullet: {
-    color: Colors.primary,
-    fontWeight: '600',
-    fontSize: 16,
-    lineHeight: 22,
+  insightIcon: {
+    marginTop: 3,
   },
   insightText: {
     ...Typography.body,
     flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
-    color: Colors.text,
+    fontSize: 14,
+    lineHeight: 20,
   },
   actions: {
     gap: Spacing.sm,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.tintedBackground,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    paddingVertical: 14,
+  },
+  actionButtonText: {
+    ...Typography.label,
+    color: Colors.accent,
+    fontWeight: '700',
   },
 });

@@ -30,11 +30,11 @@ export default function RootLayout() {
     ...DarkTheme,
     colors: {
       ...DarkTheme.colors,
-      background: '#040407',
-      card: '#101221',
-      text: '#F4F7FF',
-      border: 'rgba(164, 177, 255, 0.25)',
-      primary: '#7A7DFF',
+      background: '#0A0A0A',
+      card: '#111111',
+      text: '#FFFFFF',
+      border: '#1F2937',
+      primary: '#D4AF37',
     },
   };
 

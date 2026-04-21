@@ -1,5 +1,5 @@
-import { EventDetailsScreen } from '@/src/screens/EventDetailsScreen';
+import { DailySummaryScreen } from "@/src/screens/DailySummaryScreen";
 
-export default function DetailsTab() {
-  return <EventDetailsScreen />;
+export default function SummaryTab() {
+  return <DailySummaryScreen />;
 }

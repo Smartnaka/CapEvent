@@ -57,6 +57,7 @@ export function Button({
       <Text
         style={[
           styles.label,
+          variant === 'primary' && styles.primaryLabel,
           variant === 'secondary' && styles.secondaryLabel,
           variant === 'ghost' && styles.ghostLabel,
         ]}
@@ -69,16 +70,18 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: Radius.lg,
-    paddingVertical: 16,
+    borderRadius: Radius.xl,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.accent,
   },
   secondary: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.accent,
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -86,17 +89,21 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   disabled: {
-    opacity: 0.45,
+    opacity: 0.4,
   },
   label: {
     ...Typography.subheadline,
-    color: Colors.surface,
     fontWeight: '600',
+    color: Colors.textMuted,
+  },
+  primaryLabel: {
+    color: '#0A0A0A',
+    fontWeight: '700',
   },
   secondaryLabel: {
-    color: Colors.primary,
+    color: Colors.accent,
   },
   ghostLabel: {
-    color: Colors.secondaryText,
+    color: Colors.textMuted,
   },
 });
