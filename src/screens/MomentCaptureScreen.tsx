@@ -1,498 +1,70 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
-import { saveMoment } from '../storage/localDb';
-import { Moment } from '../types/moment';
-import { MAX_CONTENT_LENGTH } from '../utils/validation';
-import { TagChip } from '../components/TagChip';
-import { Button } from '../components/Button';
-import { Colors, Radius, Shadow, Spacing, Typography } from '../design/tokens';
+import React, { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
+import { Colors, Radius, Spacing, Typography } from '@/src/design/tokens';
+import { GlassCard, GlowButton, PremiumInput } from '@/src/components/premium/PremiumPrimitives';
 
-const TAG_OPTIONS = ['Networking', 'Keynote', 'Booth', 'Action Item', 'Idea', 'Speaker', 'Workshop'];
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-function useScreenEntrance(delay = 0) {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(12);
-
-  useEffect(() => {
-    opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
-    translateY.value = withDelay(delay, withSpring(0, { damping: 20, stiffness: 180 }));
-    // delay is a mount-time constant — intentionally excluded from deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-}
+const steps = ['Basics', 'Guests', 'Experience'];
 
 export function MomentCaptureScreen() {
-  const insets = useSafeAreaInsets();
-  const [text, setText] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [voiceState, setVoiceState] = useState<'idle' | 'recording'>('idle');
-  const [photoUri, setPhotoUri] = useState('');
-  const [inputFocused, setInputFocused] = useState(false);
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  const [recordingUri, setRecordingUri] = useState<string | null>(null);
-
-  const isSaveDisabled = text.trim().length === 0;
-
-  const headerAnim = useScreenEntrance(0);
-  const inputAnim = useScreenEntrance(60);
-  const voiceAnim = useScreenEntrance(120);
-  const photoAnim = useScreenEntrance(160);
-  const tagsAnim = useScreenEntrance(200);
-
-  // Focus glow animation
-  const glowOpacity = useSharedValue(0);
-  const focusGlowStyle = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value,
-  }));
-
-  const handleFocus = () => {
-    setInputFocused(true);
-    glowOpacity.value = withTiming(1, { duration: 200 });
-  };
-
-  const handleBlur = () => {
-    setInputFocused(false);
-    glowOpacity.value = withTiming(0, { duration: 200 });
-  };
-
-  // Voice button animation
-  const micScale = useSharedValue(1);
-  const micPulse = useSharedValue(1);
-
-  useEffect(() => {
-    if (voiceState === 'recording') {
-      micPulse.value = withRepeat(
-        withSequence(
-          withTiming(1.2, { duration: 600 }),
-          withTiming(1, { duration: 600 }),
-        ),
-        -1,
-        false,
-      );
-    } else {
-      micPulse.value = withTiming(1, { duration: 300 });
-    }
-    // micPulse is a Reanimated shared value — stable reference, safe to omit
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceState]);
-
-  const micAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: micScale.value }],
-  }));
-
-  const micPulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: micPulse.value }],
-    opacity: voiceState === 'recording' ? (micPulse.value - 1) * -3.33 + 0.4 : 0,
-  }));
-
-  const handleMicPressIn = () => {
-    micScale.value = withSpring(0.92, { damping: 15, stiffness: 350 });
-  };
-
-  const handleMicPressOut = () => {
-    micScale.value = withSpring(1, { damping: 15, stiffness: 350 });
-  };
-
-  const toggleTag = (tag: string) => {
-    setSelectedTags((current) =>
-      current.includes(tag)
-        ? current.filter((entry) => entry !== tag)
-        : [...current, tag],
-    );
-  };
-
-  const startRecording = async () => {
-    try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission required', 'Microphone access is needed to record voice notes.');
-        return;
-      }
-      // Starting a voice recording clears any attached photo to keep the
-      // moment type unambiguous.
-      setPhotoUri('');
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
-      recordingRef.current = recording;
-      setVoiceState('recording');
-    } catch (err) {
-      console.error('startRecording failed:', err);
-      Alert.alert('Error', 'Could not start recording. Please try again.');
-    }
-  };
-
-  const stopRecording = async () => {
-    const recording = recordingRef.current;
-    if (!recording) return;
-    try {
-      await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      const uri = recording.getURI();
-      recordingRef.current = null;
-      setRecordingUri(uri ?? null);
-      setVoiceState('idle');
-    } catch (err) {
-      console.error('stopRecording failed:', err);
-      Alert.alert('Error', 'Could not stop recording. Please try again.');
-    }
-  };
-
-  const handleMicToggle = async () => {
-    if (voiceState === 'recording') {
-      await stopRecording();
-    } else {
-      setRecordingUri(null);
-      await startRecording();
-    }
-  };
-
-  const handlePickPhoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Photo library access is needed to attach photos.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets.length > 0) {
-      // Attaching a photo clears any existing voice recording to keep the
-      // moment type unambiguous.
-      setRecordingUri(null);
-      setPhotoUri(result.assets[0].uri);
-    }
-  };
-
-  const onSaveMoment = async () => {
-    const trimmed = text.trim();
-    if (trimmed.length === 0 || trimmed.length > MAX_CONTENT_LENGTH) {
-      Alert.alert('Invalid input', `Content must be between 1 and ${MAX_CONTENT_LENGTH} characters.`);
-      return;
-    }
-
-    const moment: Omit<Moment, 'id'> = {
-      type: photoUri ? 'photo' : recordingUri ? 'voice' : 'text',
-      content: trimmed,
-      tags: selectedTags,
-      createdAt: new Date().toISOString(),
-      mediaUri: photoUri || recordingUri || undefined,
-    };
-
-    try {
-      await saveMoment(moment);
-      setText('');
-      setSelectedTags([]);
-      setVoiceState('idle');
-      setPhotoUri('');
-      setRecordingUri(null);
-      Alert.alert('Saved ✓', 'Moment captured and stored.');
-    } catch (err) {
-      console.error('saveMoment failed:', err);
-      Alert.alert('Error', 'Failed to save moment. Please try again.');
-    }
-  };
+  const [step, setStep] = useState(0);
+  const progress = useMemo(() => `${step + 1}/${steps.length}`, [step]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <Animated.View style={[styles.header, headerAnim]}>
-          <Text style={styles.title}>Capture Moment</Text>
-          <Text style={styles.subtitle}>Document your event memories with text, voice, or photos</Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Animated.View entering={FadeInDown.duration(420)}>
+          <Text style={styles.title}>Create Event</Text>
+          <Text style={styles.subtitle}>Elegant step-by-step flow with focus on one action.</Text>
         </Animated.View>
 
-        {/* Text Input */}
-        <Animated.View style={inputAnim}>
-          <Animated.View style={[styles.inputGlow, focusGlowStyle]} />
-          <View style={[styles.inputWrap, inputFocused && styles.inputFocused]}>
-            <TextInput
-              placeholder="What's happening right now…"
-              placeholderTextColor={Colors.secondaryText}
-              value={text}
-              onChangeText={setText}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              style={styles.input}
-              multiline
-              textAlignVertical="top"
-              maxLength={MAX_CONTENT_LENGTH}
-            />
-          </View>
-        </Animated.View>
-
-        {/* Voice Button */}
-        <Animated.View style={[styles.voiceRow, voiceAnim]}>
-          <Text style={styles.sectionLabel}>Voice Note</Text>
-          <View style={styles.micWrapper}>
-            <Animated.View style={[styles.micPulseRing, micPulseStyle]} />
-            <AnimatedPressable
-              style={[
-                styles.micButton,
-                voiceState === 'recording' && styles.micButtonActive,
-                micAnimStyle,
-                Shadow.soft,
-              ]}
-              onPress={handleMicToggle}
-              onPressIn={handleMicPressIn}
-              onPressOut={handleMicPressOut}
-            >
-              <Text style={styles.micIcon}>{voiceState === 'recording' ? '■' : '🎤'}</Text>
-            </AnimatedPressable>
-          </View>
-          <Text style={styles.voiceStatus}>
-            {voiceState === 'recording'
-              ? 'Recording… tap to stop'
-              : recordingUri
-              ? 'Recording saved ✓ — tap to re-record'
-              : 'Tap to record'}
-          </Text>
-        </Animated.View>
-
-        {/* Photo Picker */}
-        <Animated.View style={[styles.photoSection, photoAnim]}>
-          <Text style={styles.sectionLabel}>Photo</Text>
-          <View style={styles.photoTile}>
-            {photoUri ? (
+        <GlassCard>
+          <Text style={styles.stepLabel}>Step {progress} · {steps[step]}</Text>
+          <Animated.View layout={Layout.springify()} style={styles.form}>
+            {step === 0 && (
               <>
-                <Text style={styles.photoPreview} numberOfLines={1}>📷 Photo attached</Text>
-                <Pressable onPress={() => setPhotoUri('')}>
-                  <Text style={styles.photoRemove}>Remove</Text>
-                </Pressable>
+                <PremiumInput placeholder="Event name" />
+                <PremiumInput placeholder="Venue" />
               </>
-            ) : (
-              <Pressable
-                style={styles.photoAdd}
-                onPress={handlePickPhoto}
-              >
-                <Text style={styles.photoAddIcon}>＋</Text>
-                <Text style={styles.photoAddLabel}>Add Photo</Text>
-              </Pressable>
             )}
+            {step === 1 && (
+              <>
+                <PremiumInput placeholder="Key guests" />
+                <PremiumInput placeholder="VIP contacts" />
+              </>
+            )}
+            {step === 2 && (
+              <>
+                <PremiumInput placeholder="Mood / visual direction" />
+                <PremiumInput placeholder="AI assistant notes" multiline numberOfLines={4} />
+              </>
+            )}
+          </Animated.View>
+          <View style={styles.navRow}>
+            <GlowButton label={step === 0 ? 'Cancel' : 'Back'} icon="chevron-left" onPress={() => setStep((v) => Math.max(0, v - 1))} />
+            <GlowButton label={step === steps.length - 1 ? 'Publish' : 'Next'} icon="chevron-right" onPress={() => setStep((v) => Math.min(steps.length - 1, v + 1))} />
           </View>
-        </Animated.View>
+        </GlassCard>
 
-        {/* Tags */}
-        <Animated.View style={[styles.tagsSection, tagsAnim]}>
-          <Text style={styles.sectionLabel}>Tags</Text>
-          <View style={styles.tagsWrap}>
-            {TAG_OPTIONS.map((tag) => (
-              <TagChip
-                key={tag}
-                label={tag}
-                selected={selectedTags.includes(tag)}
-                onPress={() => toggleTag(tag)}
-              />
-            ))}
-          </View>
-        </Animated.View>
+        <View style={styles.indicatorRow}>
+          {steps.map((item, i) => (
+            <View key={item} style={[styles.dot, i <= step && styles.dotActive]} />
+          ))}
+        </View>
       </ScrollView>
-
-      {/* Sticky Save Button */}
-      <View style={[styles.saveBar, { paddingBottom: insets.bottom + 12 }]}>
-        <Button
-          label="Save Moment"
-          onPress={onSaveMoment}
-          disabled={isSaveDisabled}
-          style={styles.saveButton}
-        />
-      </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: Spacing.md,
-    gap: Spacing.lg,
-  },
-  header: {
-    gap: 4,
-  },
-  title: {
-    ...Typography.title,
-  },
-  subtitle: {
-    ...Typography.caption,
-    fontSize: 14,
-  },
-  inputGlow: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: Radius.xl + 4,
-    backgroundColor: Colors.primary,
-    opacity: 0.08,
-    zIndex: 0,
-  },
-  inputWrap: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.md,
-    minHeight: 160,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    ...Shadow.soft,
-  },
-  inputFocused: {
-    borderColor: Colors.primary,
-  },
-  input: {
-    ...Typography.body,
-    flex: 1,
-    minHeight: 130,
-    color: Colors.text,
-    fontSize: 17,
-    lineHeight: 26,
-  },
-  sectionLabel: {
-    ...Typography.caption,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  voiceRow: {
-    gap: 0,
-  },
-  micWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 90,
-  },
-  micPulseRing: {
-    position: 'absolute',
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: Colors.destructive,
-  },
-  micButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  micButtonActive: {
-    backgroundColor: Colors.destructiveLight,
-    borderColor: Colors.destructive,
-  },
-  micIcon: {
-    fontSize: 26,
-  },
-  voiceStatus: {
-    ...Typography.small,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  photoSection: {
-    gap: 0,
-  },
-  photoTile: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderStyle: 'dashed',
-    overflow: 'hidden',
-    minHeight: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.md,
-    gap: 8,
-  },
-  photoAdd: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  photoAddIcon: {
-    fontSize: 28,
-    color: Colors.secondaryText,
-    lineHeight: 32,
-  },
-  photoAddLabel: {
-    ...Typography.caption,
-    fontWeight: '500',
-  },
-  photoPreview: {
-    ...Typography.body,
-    fontSize: 14,
-    color: Colors.text,
-  },
-  photoRemove: {
-    ...Typography.caption,
-    color: Colors.destructive,
-    fontWeight: '500',
-  },
-  tagsSection: {
-    gap: 0,
-  },
-  tagsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  saveBar: {
-    backgroundColor: Colors.background,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  saveButton: {
-    width: '100%',
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
+  content: { padding: Spacing.lg, paddingTop: 72, gap: Spacing.lg, paddingBottom: 140 },
+  title: { ...Typography.title, fontSize: 34 },
+  subtitle: { ...Typography.body, color: Colors.textMuted, marginTop: 8 },
+  stepLabel: { ...Typography.label, marginBottom: Spacing.md },
+  form: { gap: Spacing.md },
+  navRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.lg },
+  indicatorRow: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
+  dot: { width: 28, height: 6, borderRadius: Radius.full, backgroundColor: 'rgba(255,255,255,0.15)' },
+  dotActive: { backgroundColor: Colors.secondary },
 });

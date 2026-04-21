@@ -1,4 +1,4 @@
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -13,21 +13,26 @@ export default function RootLayout() {
     return null;
   }
 
-  const lightTheme = {
-    ...DefaultTheme,
+  const appTheme = {
+    ...DarkTheme,
     colors: {
-      ...DefaultTheme.colors,
-      background: '#F5F5F7',
+      ...DarkTheme.colors,
+      background: '#040407',
+      card: '#101221',
+      text: '#F4F7FF',
+      border: 'rgba(164, 177, 255, 0.25)',
+      primary: '#7A7DFF',
     },
   };
 
   return (
-    <ThemeProvider value={lightTheme}>
-      <Stack>
+    <ThemeProvider value={appTheme}>
+      <Stack initialRouteName="onboarding">
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }

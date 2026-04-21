@@ -17,7 +17,8 @@ export function ThemedText({
   type = 'default',
   ...rest
 }: ThemedTextProps) {
-  const colorScheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme();
+  const colorScheme: 'light' | 'dark' = scheme === 'dark' ? 'dark' : 'light';
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
   const linkColor = Colors[colorScheme].tint;
 
