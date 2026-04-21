@@ -46,22 +46,22 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.background,
+    borderRadius: Radius.xl,
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: Colors.border,
   },
   selected: {
     backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
+    borderColor: Colors.accent,
   },
   label: {
     ...Typography.caption,
-    color: Colors.secondaryText,
+    color: Colors.textMuted,
     fontWeight: '500',
   },
   selectedLabel: {
-    color: Colors.primary,
+    color: Colors.accent,
     fontWeight: '600',
   },
 });

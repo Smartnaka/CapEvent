@@ -1,15 +1,12 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, TextInput, TextInputProps, View, ViewProps } from 'react-native';
-import { BlurView } from 'expo-blur';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
-import { Colors, Radius, Shadow, Spacing, Typography } from '@/src/design/tokens';
+import { Colors, Radius, Spacing, Typography } from '@/src/design/tokens';
 
 export function GlassCard({ style, ...props }: ViewProps) {
   return (
-    <BlurView intensity={26} tint="dark" style={[styles.glassShell, style]}>
-      <View {...props} style={[styles.cardInner, styles.cardGradient]} />
-    </BlurView>
+    <View style={[styles.card, style]} {...props} />
   );
 }
 
@@ -17,17 +14,15 @@ export function GlowButton({ label, icon, onPress }: { label: string; icon?: key
   const scale = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <Animated.View style={[anim, Shadow.glow]}>
+    <Animated.View style={anim}>
       <Pressable
         onPressIn={() => { scale.value = withSpring(0.98); }}
         onPressOut={() => { scale.value = withSpring(1); }}
         onPress={onPress}
-        style={styles.buttonWrap}
+        style={styles.button}
       >
-        <View style={styles.buttonGradient}>
-          {icon ? <Feather name={icon} size={16} color={Colors.text} /> : null}
-          <Text style={styles.buttonText}>{label}</Text>
-        </View>
+        {icon ? <Feather name={icon} size={16} color={Colors.background} /> : null}
+        <Text style={styles.buttonText}>{label}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -46,27 +41,16 @@ export function PremiumInput(props: TextInputProps) {
 }
 
 const styles = StyleSheet.create({
-  glassShell: {
+  card: {
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
-    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.stroke,
-  },
-  cardGradient: {
-    borderRadius: Radius.xl,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  cardInner: {
-    borderRadius: Radius.xl,
+    borderColor: Colors.border,
     padding: Spacing.lg,
   },
-  buttonWrap: {
-    borderRadius: Radius.full,
-    overflow: 'hidden',
-  },
-  buttonGradient: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.full,
+  button: {
+    backgroundColor: Colors.accent,
+    borderRadius: Radius.xl,
     paddingHorizontal: Spacing.lg,
     paddingVertical: 14,
     flexDirection: 'row',
@@ -76,16 +60,15 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     ...Typography.label,
-    color: Colors.text,
+    color: Colors.background,
     fontSize: 14,
     fontWeight: '700',
-    letterSpacing: 0.2,
   },
   inputWrap: {
     backgroundColor: Colors.surfaceElevated,
     borderRadius: Radius.lg,
     borderWidth: 1,
-    borderColor: Colors.stroke,
+    borderColor: Colors.border,
     paddingHorizontal: Spacing.md,
     paddingVertical: 12,
   },
