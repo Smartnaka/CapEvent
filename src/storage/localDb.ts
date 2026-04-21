@@ -1,9 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DailySummary, Moment } from '../types/moment';
+import { EventDraft, EventRecord } from '../types/event';
 import { isValidMoment, MAX_CONTENT_LENGTH, MAX_TAGS_PER_MOMENT } from '../utils/validation';
 import { generateAiDailySummary } from '../services/aiSummary';
 
 const MOMENTS_KEY = 'capevent_ai_moments';
+
+const EVENTS_KEY = 'capevent_ai_events';
 
 /**
  * Generates a collision-resistant unique identifier.
@@ -111,4 +114,68 @@ export async function buildDailySummary(): Promise<DailySummary> {
       'Review recurring tags to identify top sessions and speakers.',
     ],
   };
+}
+
+
+function isValidEventRecord(value: unknown): value is EventRecord {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const event = value as Record<string, unknown>;
+  const requiredTextFields = ['id', 'name', 'venue', 'keyGuests', 'vipContacts', 'mood', 'notes'] as const;
+
+  for (const field of requiredTextFields) {
+    if (typeof event[field] !== 'string') {
+      return false;
+    }
+  }
+
+  if (typeof event.createdAt !== 'string' || Number.isNaN(Date.parse(event.createdAt))) {
+    return false;
+  }
+
+  if (typeof event.updatedAt !== 'string' || Number.isNaN(Date.parse(event.updatedAt))) {
+    return false;
+  }
+
+  return true;
+}
+
+export async function loadEvents(): Promise<EventRecord[]> {
+  const raw = await AsyncStorage.getItem(EVENTS_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(isValidEventRecord);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveEvent(draft: EventDraft): Promise<EventRecord> {
+  const now = new Date().toISOString();
+  const record: EventRecord = {
+    id: generateId(),
+    name: draft.name.trim(),
+    venue: draft.venue.trim(),
+    keyGuests: draft.keyGuests.trim(),
+    vipContacts: draft.vipContacts.trim(),
+    mood: draft.mood.trim(),
+    notes: draft.notes.trim(),
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const events = await loadEvents();
+  const updated = [record, ...events].slice(0, 100);
+  await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(updated));
+  return record;
 }
