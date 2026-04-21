@@ -1,90 +1,46 @@
 export const Colors = {
-  background: '#F5F5F7',
-  surface: '#FFFFFF',
-  primary: '#007AFF',
-  primaryLight: '#E8F2FF',
-  text: '#1C1C1E',
-  secondaryText: '#6E6E73',
-  border: 'rgba(0,0,0,0.06)',
-  destructive: '#FF3B30',
-  destructiveLight: '#FFF0EF',
-  success: '#34C759',
-  successLight: '#F0FFF4',
-  tintedBackground: '#F0F7FF',
+  background: '#040407',
+  surface: 'rgba(18, 19, 30, 0.7)',
+  surfaceElevated: 'rgba(24, 26, 40, 0.82)',
+  text: '#F4F7FF',
+  textMuted: 'rgba(216, 222, 255, 0.66)',
+  textFaint: 'rgba(216, 222, 255, 0.46)',
+  secondaryText: 'rgba(216, 222, 255, 0.66)',
+  stroke: 'rgba(164, 177, 255, 0.2)',
+  border: 'rgba(164, 177, 255, 0.2)',
+  primary: '#7A7DFF',
+  primaryLight: 'rgba(122,125,255,0.2)',
+  secondary: '#2ED2FF',
+  accent: '#C36BFF',
+  success: '#38E2A5',
+  danger: '#FF6C8C',
+  destructive: '#FF6C8C',
+  destructiveLight: 'rgba(255,108,140,0.16)',
+  successLight: 'rgba(56,226,165,0.16)',
+  tintedBackground: 'rgba(122,125,255,0.14)',
+  black: '#000000',
 } as const;
 
-export const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
-} as const;
+export const Spacing = { xs: 6, sm: 10, md: 16, lg: 24, xl: 32, xxl: 44 } as const;
 
-export const Radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-  full: 9999,
-} as const;
+export const Radius = { sm: 12, md: 16, lg: 20, xl: 24, xxl: 28, full: 999 } as const;
 
 export const Typography = {
-  largeTitle: {
-    fontSize: 32,
-    fontWeight: '700' as const,
-    letterSpacing: -0.5,
-    color: Colors.text,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    letterSpacing: -0.3,
-    color: Colors.text,
-  },
-  headline: {
-    fontSize: 20,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  body: {
-    fontSize: 16,
-    fontWeight: '400' as const,
-    lineHeight: 24,
-    color: Colors.text,
-  },
-  subheadline: {
-    fontSize: 15,
-    fontWeight: '500' as const,
-    color: Colors.text,
-  },
-  caption: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: Colors.secondaryText,
-  },
-  small: {
-    fontSize: 12,
-    fontWeight: '400' as const,
-    color: Colors.secondaryText,
-  },
+  hero: { fontSize: 38, fontWeight: '700' as const, letterSpacing: -1, color: Colors.text },
+  largeTitle: { fontSize: 32, fontWeight: '700' as const, letterSpacing: -0.8, color: Colors.text },
+  title: { fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.5, color: Colors.text },
+  heading: { fontSize: 20, fontWeight: '600' as const, letterSpacing: -0.25, color: Colors.text },
+  headline: { fontSize: 20, fontWeight: '600' as const, letterSpacing: -0.25, color: Colors.text },
+  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const, color: Colors.text },
+  subheadline: { fontSize: 15, fontWeight: '500' as const, color: Colors.textMuted },
+  label: { fontSize: 13, fontWeight: '500' as const, color: Colors.textMuted },
+  caption: { fontSize: 12, fontWeight: '500' as const, color: Colors.textFaint },
+  small: { fontSize: 12, fontWeight: '400' as const, color: Colors.textFaint },
 } as const;
 
 export const Shadow = {
-  soft: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  medium: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 6,
-  },
+  glow: { shadowColor: '#5D7CFF', shadowOpacity: 0.45, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
+  card: { shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 18, shadowOffset: { width: 0, height: 12 }, elevation: 10 },
+  soft: { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  medium: { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
 } as const;
