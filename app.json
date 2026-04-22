@@ -7,7 +7,9 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/e6318db7-d4cd-48cd-8ce3-fe3cba74df31"
+      "enabled": true,
+      "url": "https://u.expo.dev/e6318db7-d4cd-48cd-8ce3-fe3cba74df31",
+      "checkAutomatically": "ON_LOAD"
     },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

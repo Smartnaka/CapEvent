@@ -33,7 +33,7 @@ export function ProfileScreen() {
 
   async function handleCheckForUpdate() {
     if (!Updates.isEnabled) {
-      Alert.alert('Development Build', 'OTA updates are only available in production builds.');
+      Alert.alert('Development Build', 'OTA updates are not available in development builds.');
       return;
     }
     setChecking(true);
