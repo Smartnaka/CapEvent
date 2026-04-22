@@ -160,6 +160,26 @@ export async function loadEvents(): Promise<EventRecord[]> {
   }
 }
 
+export interface AppStats {
+  totalMoments: number;
+  todayMoments: number;
+  totalEvents: number;
+  activeDays: number;
+}
+
+export async function getAppStats(): Promise<AppStats> {
+  const [moments, events] = await Promise.all([loadMoments(), loadEvents()]);
+  const today = new Date().toISOString().slice(0, 10);
+  const todayMoments = moments.filter((m) => m.createdAt.slice(0, 10) === today).length;
+  const activeDays = new Set(moments.map((m) => m.createdAt.slice(0, 10))).size;
+  return {
+    totalMoments: moments.length,
+    todayMoments,
+    totalEvents: events.length,
+    activeDays,
+  };
+}
+
 export async function saveEvent(draft: EventDraft): Promise<EventRecord> {
   const now = new Date().toISOString();
   const record: EventRecord = {

@@ -14,6 +14,7 @@ export function OnboardingScreen() {
   useEffect(() => {
     opacity.value = withTiming(1, { duration: 600 });
     y.value = withDelay(100, withSpring(0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const anim = useAnimatedStyle(() => ({

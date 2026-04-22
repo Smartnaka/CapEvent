@@ -17,12 +17,16 @@ import { Colors, Radius, Spacing, Typography } from '../design/tokens';
 export function DailySummaryScreen() {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const hydrateSummary = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const next = await buildDailySummary();
       setSummary(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate summary.');
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +52,17 @@ export function DailySummaryScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Generating summary…</Text>
+          {error ? (
+            <>
+              <Feather name="alert-circle" size={32} color={Colors.danger} style={styles.errorIcon} />
+              <Text style={styles.errorText}>{error}</Text>
+              <View style={styles.retryButton}>
+                <Button label="Try Again" onPress={hydrateSummary} />
+              </View>
+            </>
+          ) : (
+            <Text style={styles.loadingText}>Generating summary…</Text>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -128,10 +142,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: Spacing.lg,
   },
   loadingText: {
     ...Typography.body,
     color: Colors.textMuted,
+  },
+  errorIcon: {
+    marginBottom: Spacing.sm,
+  },
+  errorText: {
+    ...Typography.body,
+    color: Colors.danger,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  retryButton: {
+    width: '60%',
   },
   content: {
     padding: Spacing.lg,

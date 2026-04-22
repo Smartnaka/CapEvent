@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -27,6 +27,23 @@ export function MomentCaptureScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+
+  // Keep ref in sync with state so the cleanup effect always sees the latest instance
+  useEffect(() => {
+    recordingRef.current = recording;
+  }, [recording]);
+
+  // Clean up any active recording when the component unmounts mid-session
+  useEffect(() => {
+    return () => {
+      const active = recordingRef.current;
+      if (active) {
+        active.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
+      }
+    };
+  }, []);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
