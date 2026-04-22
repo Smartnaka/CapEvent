@@ -1,26 +1,41 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { Colors, Radius, Spacing, Typography } from '@/src/design/tokens';
 import { GlassCard } from '@/src/components/premium/PremiumPrimitives';
-
-const stats = [
-  { label: 'Events', value: '28' },
-  { label: 'Moments', value: '412' },
-  { label: 'AI Briefs', value: '93' },
-];
+import { getAppStats, AppStats } from '@/src/storage/localDb';
 
 export function ProfileScreen() {
   const [checking, setChecking] = useState(false);
+  const [stats, setStats] = useState<AppStats | null>(null);
+  const [statsError, setStatsError] = useState(false);
 
   const channel = Updates.channel ?? 'N/A';
   const updateId = Updates.updateId ?? 'embedded';
   const runtimeVersion = Updates.runtimeVersion ?? Constants.expoConfig?.runtimeVersion ?? 'N/A';
   const appVersion = Constants.expoConfig?.version ?? 'N/A';
 
+  const loadStats = useCallback(async () => {
+    setStatsError(false);
+    try {
+      const result = await getAppStats();
+      setStats(result);
+    } catch {
+      setStatsError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
+
   async function handleCheckForUpdate() {
+    if (!Updates.isEnabled) {
+      Alert.alert('Development Build', 'OTA updates are only available in production builds.');
+      return;
+    }
     setChecking(true);
     try {
       const result = await Updates.checkForUpdateAsync();
@@ -45,22 +60,30 @@ export function ProfileScreen() {
     }
   }
 
+  const statItems = [
+    { label: 'Events', value: statsError ? '—' : stats === null ? '…' : String(stats.totalEvents) },
+    { label: 'Moments', value: statsError ? '—' : stats === null ? '…' : String(stats.totalMoments) },
+    { label: 'Active Days', value: statsError ? '—' : stats === null ? '…' : String(stats.activeDays) },
+  ];
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Profile</Text>
         <GlassCard>
           <View style={styles.row}>
-            <View>
-              <Text style={styles.name}>Avery Brooks</Text>
-              <Text style={styles.role}>Event Operator · CapEvent Pro</Text>
+            <View style={styles.avatarRow}>
+              <View style={styles.avatar}>
+                <Feather name="user" size={22} color={Colors.textMuted} />
+              </View>
+              <Text style={styles.name}>My Account</Text>
             </View>
             <Feather name="settings" color={Colors.textMuted} size={20} />
           </View>
         </GlassCard>
 
         <View style={styles.grid}>
-          {stats.map((s) => (
+          {statItems.map((s) => (
             <View key={s.label} style={styles.statCard}>
               <Text style={styles.statValue}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>
@@ -112,8 +135,18 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, paddingTop: 72, gap: Spacing.lg, paddingBottom: 120 },
   title: { ...Typography.title, fontSize: 34 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.stroke,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   name: { ...Typography.heading },
-  role: { ...Typography.label, marginTop: 6 },
   grid: { flexDirection: 'row', gap: Spacing.md },
   statCard: {
     flex: 1,
