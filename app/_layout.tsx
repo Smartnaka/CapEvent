@@ -8,7 +8,7 @@ import 'react-native-reanimated';
 
 // Keep the splash screen visible while fonts are loading, then fade it out.
 SplashScreen.preventAutoHideAsync().then(() => {
-  SplashScreen.setOptions({ duration: 500, fade: true });
+  SplashScreen.setOptions({ duration: 800, fade: true });
 });
 
 export default function RootLayout() {

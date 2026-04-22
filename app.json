@@ -26,7 +26,7 @@
       "package": "com.smartnaka.capevent",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#040407"
+        "backgroundColor": "#0A0A0A"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -44,13 +44,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#040407",
-          "image": "./assets/images/splash.png",
-          "imageWidth": 400,
+          "backgroundColor": "#0A0A0A",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 280,
           "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#040407",
-            "image": "./assets/images/splash.png"
+            "backgroundColor": "#0A0A0A",
+            "image": "./assets/images/splash-icon.png"
           }
         }
       ],
