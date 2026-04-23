@@ -71,7 +71,7 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     borderRadius: Radius.xl,
-    paddingVertical: 14,
+    paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -84,21 +84,20 @@ const styles = StyleSheet.create({
     borderColor: Colors.accent,
   },
   ghost: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   disabled: {
-    opacity: 0.4,
+    opacity: 0.45,
   },
   label: {
     ...Typography.subheadline,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.textMuted,
   },
   primaryLabel: {
-    color: Colors.background,
-    fontWeight: '700',
+    color: '#FFFFFF',
   },
   secondaryLabel: {
     color: Colors.accent,
