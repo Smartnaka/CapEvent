@@ -1,132 +1,50 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Alert,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { buildDailySummary, loadMoments } from '../storage/localDb';
-import { DailySummary } from '../types/moment';
-import { Button } from '../components/Button';
-import { Colors, Radius, Spacing, Typography } from '../design/tokens';
+import { Colors, Radius, Shadow, Spacing, Typography } from '@/src/design/tokens';
+
+const DAY_ONE = ['#8D6D50', '#2B5CAA', '#74584A'];
+const DAY_TWO = ['#2F4D86', '#1E3D7D', '#3A2B22'];
+const MINI = ['#1E3F7D', '#3E4E87', '#2A355A'];
 
 export function DailySummaryScreen() {
-  const [summary, setSummary] = useState<DailySummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const hydrateSummary = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const next = await buildDailySummary();
-      setSummary(next);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate summary.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void hydrateSummary();
-  }, [hydrateSummary]);
-
-  const onShare = async () => {
-    if (!summary) return;
-    await Share.share({
-      message: `CapEvent AI Daily Summary (${summary.date})\n\n${summary.summaryText}`,
-    });
-  };
-
-  const onViewMoments = async () => {
-    const moments = await loadMoments();
-    Alert.alert('Saved Moments', `You have ${moments.length} saved moments.`);
-  };
-
-  if (isLoading || !summary) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          {error ? (
-            <>
-              <Feather name="alert-circle" size={32} color={Colors.danger} style={styles.errorIcon} />
-              <Text style={styles.errorText}>{error}</Text>
-              <View style={styles.retryButton}>
-                <Button label="Try Again" onPress={hydrateSummary} />
-              </View>
-            </>
-          ) : (
-            <Text style={styles.loadingText}>Generating summary…</Text>
-          )}
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Daily Summary</Text>
-          <Text style={styles.date}>{summary.date}</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.topRow}>
+          <Feather name="chevron-left" size={22} color={Colors.textMuted} />
+          <Text style={styles.title}>Marketing Summit 2025</Text>
+          <Feather name="more-horizontal" size={20} color={Colors.textMuted} />
         </View>
 
-        {/* Summary Card */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryBadge}>
-            <Text style={styles.summaryBadgeText}>AI Generated</Text>
-          </View>
-          <Text style={styles.summaryText}>{summary.summaryText}</Text>
+        <View style={styles.tabRow}>
+          <Text style={[styles.tab, styles.activeTab]}>Timeline</Text>
+          <Text style={styles.tab}>Gallery</Text>
         </View>
 
-        {/* Key Moments */}
-        {summary.keyMoments.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Key Moments</Text>
-            <View style={styles.listContainer}>
-              {summary.keyMoments.map((moment, i) => (
-                <View key={`moment-${i}`} style={styles.listItem}>
-                  <Text style={styles.listIndex}>{i + 1}</Text>
-                  <Text style={styles.listText} numberOfLines={3}>{moment}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Actionable Insights */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actionable Insights</Text>
-          <View style={styles.insightsCard}>
-            {summary.actionableInsights.map((insight, i) => (
-              <View key={`insight-${i}`} style={styles.insightRow}>
-                <Feather name="arrow-right" size={14} color={Colors.accent} style={styles.insightIcon} />
-                <Text style={styles.insightText}>{insight}</Text>
-              </View>
-            ))}
-          </View>
+        <View style={styles.dayHeader}><Text style={styles.dayTitle}>May 24, 2025</Text><Text style={styles.dayMeta}>Day 1</Text></View>
+        <View style={styles.grid3}>
+          {DAY_ONE.map((c, i) => <View key={i} style={[styles.tile, { backgroundColor: c }]} />)}
         </View>
 
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Button
-            label="Share Summary"
-            onPress={() => { void onShare(); }}
-          />
-          <Button
-            label="View Related Moments"
-            onPress={() => { void onViewMoments(); }}
-            variant="ghost"
-          />
+        <View style={styles.dayHeader}><Text style={styles.dayTitle}>May 25, 2025</Text><Text style={styles.dayMeta}>Day 2</Text></View>
+        <View style={styles.grid3}>
+          {DAY_TWO.map((c, i) => <View key={i} style={[styles.tile, { backgroundColor: c }]} />)}
+        </View>
+
+        <Text style={styles.sectionTitle}>Highlights</Text>
+        <Text style={styles.sectionSub}>Best moments from the event</Text>
+        <View style={styles.videoCard}>
+          <View style={styles.play}><Feather name="play" size={22} color="#fff" /></View>
+          <View style={styles.duration}><Text style={styles.durationText}>02:15</Text></View>
+        </View>
+
+        <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Memories</Text>
+        <Text style={styles.sectionSub}>All captured moments</Text>
+        <View style={styles.memoriesRow}>
+          {MINI.map((c, i) => <View key={i} style={[styles.miniTile, { backgroundColor: c }]} />)}
+          <View style={styles.plusTile}><Feather name="plus" size={24} color={Colors.accent} /></View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -134,132 +52,25 @@ export function DailySummaryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  loadingText: {
-    ...Typography.body,
-    color: Colors.textMuted,
-  },
-  errorIcon: {
-    marginBottom: Spacing.sm,
-  },
-  errorText: {
-    ...Typography.body,
-    color: Colors.danger,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-  },
-  retryButton: {
-    width: '60%',
-  },
-  content: {
-    padding: Spacing.lg,
-    gap: Spacing.lg,
-    paddingBottom: 120,
-  },
-  header: {
-    gap: 4,
-  },
-  title: {
-    ...Typography.largeTitle,
-  },
-  date: {
-    ...Typography.label,
-    color: Colors.textMuted,
-  },
-  summaryCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: Spacing.sm,
-  },
-  summaryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.tintedBackground,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  summaryBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.accent,
-    letterSpacing: 0.4,
-  },
-  summaryText: {
-    ...Typography.body,
-    lineHeight: 24,
-  },
-  section: {
-    gap: Spacing.sm,
-  },
-  sectionTitle: {
-    ...Typography.label,
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  listContainer: {
-    gap: Spacing.xs,
-  },
-  listItem: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    gap: Spacing.md,
-    alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  listIndex: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.accent,
-    minWidth: 20,
-    marginTop: 2,
-  },
-  listText: {
-    ...Typography.body,
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  insightsCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: Spacing.sm,
-  },
-  insightRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    alignItems: 'flex-start',
-  },
-  insightIcon: {
-    marginTop: 3,
-  },
-  insightText: {
-    ...Typography.body,
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  actions: {
-    gap: Spacing.sm,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
+  content: { padding: Spacing.md, paddingBottom: 120 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  title: { ...Typography.heading, fontSize: 24 },
+  tabRow: { flexDirection: 'row', gap: 32, borderBottomColor: Colors.border, borderBottomWidth: 1, marginBottom: 12 },
+  tab: { ...Typography.subheadline, color: Colors.textMuted, paddingBottom: 10 },
+  activeTab: { color: Colors.accent, borderBottomWidth: 3, borderBottomColor: Colors.accent },
+  dayHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, marginTop: 4 },
+  dayTitle: { ...Typography.subheadline, color: Colors.textMuted },
+  dayMeta: { ...Typography.subheadline, color: Colors.textFaint },
+  grid3: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  tile: { flex: 1, aspectRatio: 1, borderRadius: Radius.lg, ...Shadow.soft },
+  sectionTitle: { ...Typography.heading, marginTop: 8, fontSize: 28 },
+  sectionSub: { ...Typography.caption, color: Colors.textMuted, marginBottom: 8 },
+  videoCard: { height: 160, borderRadius: Radius.xl, backgroundColor: '#1F4180', alignItems: 'center', justifyContent: 'center', ...Shadow.card },
+  play: { width: 56, height: 56, borderRadius: Radius.full, borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
+  duration: { position: 'absolute', right: 10, bottom: 10, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 3 },
+  durationText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  memoriesRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  miniTile: { flex: 1, aspectRatio: 1, borderRadius: Radius.lg },
+  plusTile: { width: 86, aspectRatio: 1, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },
 });

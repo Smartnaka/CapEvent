@@ -3,54 +3,48 @@ import { Tabs } from 'expo-router';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Spacing } from '@/src/design/tokens';
+import { Colors, Radius, Shadow } from '@/src/design/tokens';
 
 const icons: Record<string, keyof typeof Feather.glyphMap> = {
   index: 'home',
-  capture: 'edit-2',
-  summary: 'file-text',
-  profile: 'user',
+  capture: 'plus',
+  summary: 'image',
+  profile: 'star',
 };
 
-const ANDROID_MIN_INSET = 8;
-const BOTTOM_GAP = 12;
+const labels: Record<string, string> = {
+  index: 'Home',
+  capture: '',
+  summary: 'Timeline',
+  profile: 'Insights',
+};
 
-function CustomTabBar({ state, descriptors, navigation }: any) {
+function CustomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const bottomOffset =
-    Math.max(insets.bottom, Platform.OS === 'android' ? ANDROID_MIN_INSET : 0) + BOTTOM_GAP;
+  const bottomOffset = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0) + 8;
 
   return (
-    <View style={[styles.tabWrapper, { bottom: bottomOffset }]}>
-      <View style={styles.tabBar}>
+    <View style={[styles.wrapper, { bottom: bottomOffset }]}>
+      <View style={styles.bar}>
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
+          const isCapture = route.name === 'capture';
           return (
             <Pressable
               key={route.key}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isFocused }}
-              onPress={onPress}
-              style={styles.tabItem}
+              onPress={() => navigation.navigate(route.name)}
+              style={[styles.item, isCapture && styles.captureSlot]}
             >
-              <Feather
-                name={icons[route.name]}
-                size={20}
-                color={isFocused ? Colors.accent : Colors.textFaint}
-              />
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
-                {descriptors[route.key].options.title}
-              </Text>
+              <View style={[styles.iconWrap, isFocused && !isCapture && styles.iconWrapActive, isCapture && styles.captureButton]}>
+                <Feather
+                  name={icons[route.name]}
+                  size={isCapture ? 24 : 18}
+                  color={isFocused || isCapture ? '#FFFFFF' : Colors.textFaint}
+                />
+              </View>
+              {labels[route.name] ? (
+                <Text style={[styles.label, isFocused && styles.labelActive]}>{labels[route.name]}</Text>
+              ) : null}
             </Pressable>
           );
         })}
@@ -62,41 +56,65 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 export default function TabLayout() {
   return (
     <Tabs tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="capture" options={{ title: 'Capture' }} />
-      <Tabs.Screen name="summary" options={{ title: 'Summary' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="capture" />
+      <Tabs.Screen name="summary" />
+      <Tabs.Screen name="profile" />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  tabWrapper: {
+  wrapper: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 18,
+    right: 18,
   },
-  tabBar: {
+  bar: {
     flexDirection: 'row',
-    borderRadius: Radius.xl,
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    borderRadius: Radius.xxl,
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
-    overflow: 'hidden',
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 8,
+    ...Shadow.medium,
   },
-  tabItem: {
+  item: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 4,
-    paddingVertical: Spacing.sm + 2,
   },
-  tabLabel: {
+  captureSlot: {
+    marginTop: -24,
+  },
+  iconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapActive: {
+    backgroundColor: Colors.accent,
+  },
+  captureButton: {
+    width: 52,
+    height: 52,
+    backgroundColor: Colors.accent,
+    borderWidth: 4,
+    borderColor: Colors.surface,
+    ...Shadow.glow,
+  },
+  label: {
     fontSize: 11,
+    fontWeight: '700',
     color: Colors.textFaint,
-    fontWeight: '600',
   },
-  tabLabelActive: {
+  labelActive: {
     color: Colors.accent,
   },
 });

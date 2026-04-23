@@ -1,319 +1,83 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
-import * as ImagePicker from 'expo-image-picker';
-import { Colors, Radius, Spacing, Typography } from '@/src/design/tokens';
-import { TagChip } from '@/src/components/TagChip';
+import { Colors, Radius, Shadow, Spacing, Typography } from '@/src/design/tokens';
 import { Button } from '@/src/components/Button';
-import { saveMoment } from '@/src/storage/localDb';
 
-const TAGS = ['Idea', 'Contact', 'Insight', 'Task'] as const;
+const MODE_TABS = ['Photo', 'Video', 'Text'];
+const TAGS = ['#sunset', '#team', '#memories'];
 
 export function MomentCaptureScreen() {
-  const router = useRouter();
-  const [content, setContent] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
-
-  // Keep ref in sync with state so the cleanup effect always sees the latest instance
-  useEffect(() => {
-    recordingRef.current = recording;
-  }, [recording]);
-
-  // Clean up any active recording when the component unmounts mid-session
-  useEffect(() => {
-    return () => {
-      const active = recordingRef.current;
-      if (active) {
-        active.stopAndUnloadAsync().catch(() => {});
-        recordingRef.current = null;
-      }
-    };
-  }, []);
-
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
-  };
-
-  const handleSave = async () => {
-    if (!content.trim()) {
-      Alert.alert('Empty moment', 'Please enter some text before saving.');
-      return;
-    }
-    setIsSaving(true);
-    try {
-      await saveMoment({
-        type: 'text',
-        content: content.trim(),
-        tags: selectedTags,
-        createdAt: new Date().toISOString(),
-      });
-      setContent('');
-      setSelectedTags([]);
-      router.navigate('/(tabs)');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleVoice = async () => {
-    if (isRecording && recording) {
-      try {
-        await recording.stopAndUnloadAsync();
-        const uri = recording.getURI();
-        setRecording(null);
-        setIsRecording(false);
-        if (uri) {
-          setIsSaving(true);
-          try {
-            await saveMoment({
-              type: 'voice',
-              content: 'Voice recording',
-              tags: selectedTags,
-              createdAt: new Date().toISOString(),
-              mediaUri: uri,
-            });
-            setSelectedTags([]);
-            router.navigate('/(tabs)');
-          } finally {
-            setIsSaving(false);
-          }
-        }
-      } catch {
-        Alert.alert('Error', 'Failed to stop recording.');
-      }
-      return;
-    }
-
-    const { granted, canAskAgain } = await Audio.requestPermissionsAsync();
-    if (!granted) {
-      Alert.alert(
-        'Microphone Permission Required',
-        canAskAgain
-          ? 'Microphone access is needed to record voice moments.'
-          : 'Microphone access was denied. Please enable it in your device Settings > Privacy > Microphone.',
-      );
-      return;
-    }
-
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-      const { recording: rec } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
-      setRecording(rec);
-      setIsRecording(true);
-    } catch {
-      Alert.alert('Error', 'Could not start recording.');
-    }
-  };
-
-  const handlePhoto = async () => {
-    const { granted, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!granted) {
-      Alert.alert(
-        'Photo Library Permission Required',
-        canAskAgain
-          ? 'Photo library access is needed to upload photos.'
-          : 'Photo library access was denied. Please enable it in your device Settings > Privacy > Photos.',
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setIsSaving(true);
-      try {
-        await saveMoment({
-          type: 'photo',
-          content: 'Photo captured',
-          tags: selectedTags,
-          createdAt: new Date().toISOString(),
-          mediaUri: result.assets[0].uri,
-        });
-        setSelectedTags([]);
-        router.navigate('/(tabs)');
-      } finally {
-        setIsSaving(false);
-      }
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Capture Moment</Text>
-          <Text style={styles.subtitle}>Log what's happening right now.</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.topRow}>
+          <Feather name="x" size={22} color={Colors.textMuted} />
+          <Text style={styles.screenTitle}>Capture Moment</Text>
+          <View style={{ width: 22 }} />
         </View>
 
-        {/* Text Input */}
-        <TextInput
-          style={styles.textInput}
-          placeholder="What happened? What did you observe?"
-          placeholderTextColor={Colors.textFaint}
-          multiline
-          numberOfLines={6}
-          textAlignVertical="top"
-          value={content}
-          onChangeText={setContent}
-        />
+        <Text style={styles.headline}>What's the moment?</Text>
+        <Text style={styles.subline}>Capture it your way.</Text>
 
-        {/* Media Buttons */}
-        <View style={styles.mediaRow}>
-          <Pressable
-            style={[styles.mediaButton, isRecording && styles.mediaButtonActive]}
-            onPress={() => { void handleVoice(); }}
-            disabled={isSaving}
-          >
-            <Feather
-              name={isRecording ? 'mic-off' : 'mic'}
-              size={20}
-              color={isRecording ? Colors.accent : Colors.textMuted}
-            />
-            <Text style={[styles.mediaLabel, isRecording && styles.mediaLabelActive]}>
-              {isRecording ? 'Stop' : 'Voice'}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.mediaButton}
-            onPress={() => { void handlePhoto(); }}
-            disabled={isSaving}
-          >
-            <Feather name="camera" size={20} color={Colors.textMuted} />
-            <Text style={styles.mediaLabel}>Photo</Text>
-          </Pressable>
+        <View style={styles.modeRow}>
+          {MODE_TABS.map((item, index) => (
+            <View key={item} style={[styles.modePill, index === 0 && styles.modePillActive]}>
+              <Feather name={index === 0 ? 'camera' : index === 1 ? 'video' : 'file-text'} size={14} color={index === 0 ? '#fff' : Colors.textMuted} />
+              <Text style={[styles.modeText, index === 0 && styles.modeTextActive]}>{item}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* Tag Selector */}
-        <View style={styles.tagSection}>
-          <Text style={styles.tagLabel}>Tags</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tagRow}
-          >
-            {TAGS.map((tag) => (
-              <TagChip
-                key={tag}
-                label={tag}
-                selected={selectedTags.includes(tag)}
-                onPress={() => toggleTag(tag)}
-              />
-            ))}
-          </ScrollView>
+        <View style={styles.previewCard}>
+          <View style={styles.sparkleBadge}><Text style={styles.sparkle}>✦</Text></View>
         </View>
 
-        {/* Save Button */}
-        <Button
-          label={isSaving ? 'Saving…' : 'Save Moment'}
-          onPress={() => { void handleSave(); }}
-          disabled={isSaving || !content.trim()}
-        />
+        <View style={styles.controlsRow}>
+          <Feather name="zap" size={18} color={Colors.textMuted} />
+          <View style={styles.zoomPill}><Text style={styles.zoomText}>1x</Text></View>
+          <Feather name="refresh-cw" size={18} color={Colors.textMuted} />
+        </View>
+
+        <View style={styles.captureButtonOuter}><View style={styles.captureButtonInner} /></View>
+
+        <TextInput style={styles.captionInput} placeholder="Add a caption..." placeholderTextColor={Colors.textFaint} />
+
+        <View style={styles.tagsRow}>
+          {TAGS.map((tag) => (
+            <View key={tag} style={styles.tag}><Text style={styles.tagText}>{tag}</Text></View>
+          ))}
+        </View>
+
+        <Button label="Save Moment ✨" onPress={() => {}} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  content: {
-    padding: Spacing.lg,
-    gap: Spacing.lg,
-    paddingBottom: 120,
-  },
-  header: {
-    gap: 4,
-  },
-  title: {
-    ...Typography.largeTitle,
-  },
-  subtitle: {
-    ...Typography.label,
-    color: Colors.textMuted,
-  },
-  textInput: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.md,
-    ...Typography.body,
-    color: Colors.text,
-    minHeight: 140,
-    textAlignVertical: 'top',
-  },
-  mediaRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  mediaButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: 14,
-  },
-  mediaButtonActive: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.tintedBackground,
-  },
-  mediaLabel: {
-    ...Typography.label,
-    color: Colors.textMuted,
-    fontWeight: '600',
-  },
-  mediaLabelActive: {
-    color: Colors.accent,
-  },
-  tagSection: {
-    gap: Spacing.sm,
-  },
-  tagLabel: {
-    ...Typography.label,
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
+  content: { padding: Spacing.md, gap: Spacing.sm, paddingBottom: 120 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  screenTitle: { ...Typography.heading, fontSize: 24 },
+  headline: { ...Typography.heading, textAlign: 'center', fontSize: 36, marginTop: 4 },
+  subline: { ...Typography.body, textAlign: 'center', color: Colors.textMuted, marginBottom: 10 },
+  modeRow: { flexDirection: 'row', gap: 8, justifyContent: 'center', marginBottom: 8 },
+  modePill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.full },
+  modePillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  modeText: { ...Typography.label, color: Colors.textMuted },
+  modeTextActive: { color: '#fff' },
+  previewCard: { height: 330, borderRadius: Radius.xl, backgroundColor: '#B69A84', ...Shadow.card, marginBottom: 8 },
+  sparkleBadge: { position: 'absolute', top: 10, left: 10, width: 30, height: 30, borderRadius: Radius.full, backgroundColor: 'rgba(32,32,32,0.42)', alignItems: 'center', justifyContent: 'center' },
+  sparkle: { color: '#fff', fontSize: 18 },
+  controlsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, marginVertical: 6 },
+  zoomPill: { backgroundColor: Colors.surface, borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: Colors.border },
+  zoomText: { color: Colors.textMuted, fontWeight: '700' },
+  captureButtonOuter: { alignSelf: 'center', width: 78, height: 78, borderRadius: Radius.full, borderWidth: 4, borderColor: Colors.accent, alignItems: 'center', justifyContent: 'center', marginVertical: 6 },
+  captureButtonInner: { width: 60, height: 60, borderRadius: Radius.full, backgroundColor: Colors.accent },
+  captionInput: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, paddingHorizontal: 16, paddingVertical: 14, ...Typography.body },
+  tagsRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  tag: { backgroundColor: Colors.surfaceElevated, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6 },
+  tagText: { ...Typography.caption, color: Colors.textMuted, fontWeight: '600' },
 });
