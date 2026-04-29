@@ -1,4 +1,4 @@
-# CapEvent AI
+# CapEvent AIzIi
 
 **CapEvent AI** is a React Native / Expo mobile app that helps you capture event moments on the go and generates intelligent daily summaries using AI.
 
