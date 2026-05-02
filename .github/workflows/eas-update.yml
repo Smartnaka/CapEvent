@@ -3,8 +3,7 @@ name: EAS OTA Update
 on:
   push:
     branches:
-      - preview
-      - production
+      - main
 
 jobs:
   update:
@@ -34,5 +33,4 @@ jobs:
       - name: Publish update
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          BRANCH_NAME: ${{ github.ref_name }}
-        run: eas update --branch "$BRANCH_NAME" --message "$COMMIT_MESSAGE" --non-interactive
+        run: eas update --branch preview --message "$COMMIT_MESSAGE" --non-interactive
