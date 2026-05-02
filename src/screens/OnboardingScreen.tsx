@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '@/src/design/tokens';
@@ -22,6 +23,11 @@ export function OnboardingScreen() {
     transform: [{ translateY: y.value }],
   }));
 
+  const handleEnter = async () => {
+    await AsyncStorage.setItem('capevent_onboarded', 'true');
+    router.replace('/(tabs)');
+  };
+
   return (
     <View style={styles.bg}>
       <SafeAreaView style={styles.safe}>
@@ -37,7 +43,7 @@ export function OnboardingScreen() {
             </View>
           </GlassCard>
 
-          <GlowButton label="Enter Experience" icon="arrow-right" onPress={() => router.replace('/(tabs)')} />
+          <GlowButton label="Enter Experience" icon="arrow-right" onPress={handleEnter} />
         </Animated.View>
       </SafeAreaView>
     </View>

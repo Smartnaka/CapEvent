@@ -20,6 +20,9 @@ const labels: Record<string, string> = {
 };
 
 function CustomTabBar({ state, navigation }: any) {
+  const isCaptureFocused = state.routes[state.index]?.name === 'capture';
+  if (isCaptureFocused) return null;
+
   const insets = useSafeAreaInsets();
   const bottomOffset = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0) + 8;
 
@@ -100,6 +103,7 @@ const styles = StyleSheet.create({
   },
   iconWrapActive: {
     backgroundColor: Colors.accent,
+    borderRadius: Radius.md,
   },
   captureButton: {
     width: 52,
