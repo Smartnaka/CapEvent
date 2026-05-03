@@ -5,18 +5,18 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '@/src/design/tokens';
 
+const VISIBLE_TAB_ROUTES = ['index', 'capture', 'profile'] as const;
+
 const icons: Record<string, keyof typeof Feather.glyphMap> = {
   index: 'home',
   capture: 'plus',
-  summary: 'image',
-  profile: 'star',
+  profile: 'user',
 };
 
 const labels: Record<string, string> = {
   index: 'Home',
   capture: '',
-  summary: 'Timeline',
-  profile: 'Insights',
+  profile: 'Profile',
 };
 
 function CustomTabBar({ state, navigation }: any) {
@@ -29,8 +29,9 @@ function CustomTabBar({ state, navigation }: any) {
   return (
     <View style={[styles.wrapper, { bottom: bottomOffset }]}>
       <View style={styles.bar}>
-        {state.routes.map((route: any, index: number) => {
-          const isFocused = state.index === index;
+        {state.routes.filter((route: any) => VISIBLE_TAB_ROUTES.includes(route.name)).map((route: any) => {
+          const routeIndex = state.routes.findIndex((r: any) => r.key === route.key);
+          const isFocused = state.index === routeIndex;
           const isCapture = route.name === 'capture';
           return (
             <Pressable
