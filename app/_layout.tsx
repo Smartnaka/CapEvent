@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import * as Updates from 'expo-updates';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
@@ -19,22 +20,38 @@ export default function RootLayout() {
   const router = useRouter();
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  useEffect(() => {
     if (!loaded) {
       return;
     }
 
-    AsyncStorage.getItem('capevent_onboarded').then((val) => {
+    async function initApp() {
+      // Check for OTA updates before showing the app so users always get the
+      // latest bundle without needing a full store release.
+      if (Updates.isEnabled) {
+        try {
+          const update = await Updates.checkForUpdateAsync();
+          if (update.isAvailable) {
+            await Updates.fetchUpdateAsync();
+            await Updates.reloadAsync();
+            // reloadAsync() restarts the JS bundle — nothing below executes.
+            return;
+          }
+        } catch (e) {
+          // Network errors or misconfiguration should not block the app.
+          console.warn('EAS update check failed:', e);
+        }
+      }
+
+      await SplashScreen.hideAsync();
+
+      const val = await AsyncStorage.getItem('capevent_onboarded');
       if (val) {
         router.replace('/(tabs)');
       }
       setReady(true);
-    });
+    }
+
+    initApp();
   }, [loaded, router]);
 
   if (!loaded || !ready) {
