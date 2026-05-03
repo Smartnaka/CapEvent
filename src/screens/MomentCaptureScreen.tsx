@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors, Radius, Shadow, Spacing, Typography } from '@/src/design/tokens';
 import { Button } from '@/src/components/Button';
 import { useMoments } from '@/src/hooks/useMoments';
